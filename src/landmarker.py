@@ -12,7 +12,7 @@ class Landmarker():
             self.result = result
 
         options = mp.tasks.vision.HandLandmarkerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path='./modelos/hand_landmarker.task'),
+            base_options=mp.tasks.BaseOptions(model_asset_path='./models/hand_landmarker.task'),
             running_mode=mp.tasks.vision.RunningMode.LIVE_STREAM,
             result_callback=callback)
 
