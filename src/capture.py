@@ -1,8 +1,9 @@
-import csv
 import cv2
-from landmarker import Landmarker
 import utils
 import os
+
+from landmarker import Landmarker
+from dataset import Dataset
 
 CAMERA_INDEX = 0
 if "CAMERA_INDEX" in os.environ:
@@ -18,6 +19,7 @@ if not cap.isOpened():
     exit(1)
 
 landmarker = Landmarker()
+dataset = Dataset("./data/dataset.csv")
 
 while True:
     ret, frame = cap.read()
@@ -27,7 +29,13 @@ while True:
 
     landmarker.detect_async(frame)
 
-    if hasattr(landmarker.result, "hand_landmarks"):
+    key = cv2.waitKey(1)
+    if key == 27: # esc
+        break
+
+    if hasattr(landmarker.result, "hand_landmarks") and \
+        len(landmarker.result.hand_world_landmarks):
+
         w,h = 640,360
         hands = landmarker.result.hand_landmarks
         for hand in hands:
@@ -37,11 +45,14 @@ while True:
         for hand in hands:
             utils.draw_hand_lines(frame,hand,(w,h),(w//8,h//8))
 
+        if key >= 97 and key <= 122:
+            dataset.save(chr(key),hands[0])
+
 
     cv2.imshow('Libras', frame)
-    if cv2.waitKey(1) == ord('q'):
-        break
 
+
+dataset.close()
 landmarker.close()
 cap.release()
 cv2.destroyAllWindows()
