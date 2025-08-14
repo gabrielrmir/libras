@@ -2,8 +2,17 @@ import csv
 import cv2
 from landmarker import Landmarker
 import utils
+import os
 
-cap = cv2.VideoCapture(0)
+CAMERA_INDEX = 0
+if "CAMERA_INDEX" in os.environ:
+    try:
+        CAMERA_INDEX = int(os.environ["CAMERA_INDEX"])
+    except:
+        print("[ERROR] Invalid camera index")
+        exit(1)
+
+cap = cv2.VideoCapture(CAMERA_INDEX)
 if not cap.isOpened():
     print("Cannot open camera")
     exit(1)
