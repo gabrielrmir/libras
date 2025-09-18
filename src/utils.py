@@ -10,6 +10,8 @@ def draw_hand_lines(frame, hand, scale=(1,1), offset=(0,0)):
         x2,y2 = (int(hand[line[1]].x*w)+xoff,int(hand[line[1]].y*h)+yoff)
         cv2.line(frame,(x1,y1),(x2,y2),(255,0,0),2)
 
+def draw_box(frame, box):
+    cv2.rectangle(frame, box[0,1], box[2,3], (0,255,0), 2)
 
 def draw_hand(frame, hand, scale=(1,1), offset=(0,0)):
     w,h = scale

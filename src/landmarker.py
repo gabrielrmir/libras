@@ -1,27 +1,52 @@
 from functools import reduce
 from mediapipe.tasks.python.components.containers.landmark import Landmark
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
+from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 import mediapipe as mp
 import time
 
-class Landmarker():
-    def __init__(self):
-        self.result = HandLandmarkerResult
-        self.landmarker =  mp.tasks.vision.HandLandmarker
-        self.create_landmarker()
+def _get_bounding_box(hand):
+    hand = list(filter(lambda a: a.x != None and a.y != None, hand))
+    if len(hand) == 0: return None
+    pos = hand.pop()
+    box = [pos.x, pos.y, pos.x, pos.y]
+    for pos in hand:
+        box[0] = min(box[0], pos.x)
+        box[1] = min(box[1], pos.y)
+        box[2] = max(box[2], pos.x)
+        box[3] = max(box[3], pos.y)
+    return box
 
-    def create_landmarker(self):
-        def callback(result: HandLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+class Landmarker():
+    def __init__(self, mode: RunningMode):
+        self.result = HandLandmarkerResult
+        self.landmarker = self.create_landmarker(mode)
+        self.running_mode = mode
+        self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect
+
+    def create_landmarker(self, mode: RunningMode):
+        def callback(result, output_image, timestamp_ms):
             self.result = result
 
-        options = mp.tasks.vision.HandLandmarkerOptions(
+        options = HandLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path='./models/hand_landmarker.task'),
-            running_mode=mp.tasks.vision.RunningMode.LIVE_STREAM,
-            result_callback=callback)
+            running_mode=mode,
+            result_callback=callback if mode == RunningMode.LIVE_STREAM else None)
 
-        self.landmarker = mp.tasks.vision.HandLandmarker.create_from_options(options)
+        return HandLandmarker.create_from_options(options)
 
-    def detect(self, frame):
+    def _detect(self, frame):
+        print("detecting...")
+        mp_image = mp.Image(
+            image_format=mp.ImageFormat.SRGB,
+            data=frame)
+        self.result = self.landmarker.detect(mp_image)
+        print(self.result)
+        print("ok")
+
+    def _detect_async(self, frame):
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
             data=frame)
@@ -32,13 +57,15 @@ class Landmarker():
     def has_result(self):
         return hasattr(self.result, "hand_landmarks") and \
             len(self.result.hand_world_landmarks)
-    
+
     def get_hands_boundaries(self):
+        boxes = []
         if not self.has_result(): return []
-        tl = Landmark(0,0)
         for hand in self.result.hand_landmarks:
-            tl = reduce(lambda a, b: Landmark(min(a.x,b.x), min(a.y,b.y)), hand)
-        return tl
+            box = _get_bounding_box(hand)
+            if box == None: continue
+            boxes.append(box)
+        return boxes
 
     def close(self):
         self.landmarker.close()
