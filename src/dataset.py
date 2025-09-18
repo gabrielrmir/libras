@@ -13,5 +13,8 @@ class Dataset():
         self._csvwriter.writerow(data)
         self._file.flush()
 
+    def save_image(self, image):
+        pass
+
     def close(self):
         self._file.close()

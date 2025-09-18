@@ -27,15 +27,13 @@ while True:
         print("Unable to receive frame. Exiting...")
         break
 
-    landmarker.detect_async(frame)
+    landmarker.detect(frame)
 
     key = cv2.waitKey(1)
     if key == 27: # esc
         break
 
-    if hasattr(landmarker.result, "hand_landmarks") and \
-        len(landmarker.result.hand_world_landmarks):
-
+    if landmarker.has_result():
         w,h = 640,360
         hands = landmarker.result.hand_landmarks
         for hand in hands:
