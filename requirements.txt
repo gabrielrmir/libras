@@ -1,0 +1,4 @@
+mediapipe
+pandas
+matplotlib
+numpy

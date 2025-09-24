@@ -1,20 +1,16 @@
-import csv
+import pandas as pd
+import utils
 
 class Dataset():
     def __init__(self, filename):
-        self._file = open(filename, 'a')
-        self._csvwriter = csv.writer(self._file)
+        self.filename = filename
 
-    def save(self, symbol, hand):
-        data = [symbol]
-        for pos in hand:
-            data.append(pos.x)
-            data.append(pos.y)
-        self._csvwriter.writerow(data)
-        self._file.flush()
+    def save(self, label, hand):
+        l = utils.hand_to_1d_array(hand)
+        if l == None:
+            print('could not save hand to dataset')
+            return
 
-    def save_image(self, image):
-        pass
-
-    def close(self):
-        self._file.close()
+        l.insert(0, label)
+        pd.DataFrame([l]).to_csv(self.filename, mode='a', header=False, index=False)
+        print('saved hand as label: ' + label)
