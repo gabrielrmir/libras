@@ -11,7 +11,11 @@ def draw_hand_lines(frame, hand):
         cv2.line(frame,(x1,y1),(x2,y2),(255,0,0),2)
 
 def draw_box(frame, box):
-    cv2.rectangle(frame, box[0,1], box[2,3], (0,255,0), 2)
+    x1,y1,x2,y2 = box
+    h, w, _ = frame.shape
+    pt1 = (int(x1*w), int(y1*h))
+    pt2 = (int(x2*w), int(y2*h))
+    cv2.rectangle(frame, pt1, pt2, (0,255,0), 2)
 
 def draw_hand(frame, hand):
     h, w, _ = frame.shape
@@ -27,4 +31,11 @@ def hand_to_1d_array(hand):
         if pos.x == None or pos.y == None: return None
         arr.append(pos.x)
         arr.append(pos.y)
+    return arr
+
+def hand_to_points_array(hand):
+    arr = []
+    for pos in hand:
+        if pos.x == None or pos.y == None: return None
+        arr.append((pos.x, pos.y))
     return arr

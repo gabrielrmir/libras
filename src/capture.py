@@ -52,6 +52,9 @@ while True:
     if landmarker.has_result():
         handle_key(key)
         draw_hands(frame)
+        boxes = landmarker.get_hands_boundaries()
+        for box in boxes:
+            utils.draw_box(frame, box)
 
     cv2.flip(frame, 1, frame)
     cv2.imshow('Libras', frame)

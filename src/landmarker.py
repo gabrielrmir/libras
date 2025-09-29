@@ -6,17 +6,18 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 import mediapipe as mp
 import time
+import utils
 
 def _get_bounding_box(hand):
-    hand = list(filter(lambda a: a.x != None and a.y != None, hand))
-    if len(hand) == 0: return None
+    hand = utils.hand_to_points_array(hand)
+    if hand == None: return None
     pos = hand.pop()
-    box = [pos.x, pos.y, pos.x, pos.y]
+    box = [pos[0], pos[1], pos[0], pos[1]]
     for pos in hand:
-        box[0] = min(box[0], pos.x)
-        box[1] = min(box[1], pos.y)
-        box[2] = max(box[2], pos.x)
-        box[3] = max(box[3], pos.y)
+        box[0] = min(box[0], pos[0])
+        box[1] = min(box[1], pos[1])
+        box[2] = max(box[2], pos[0])
+        box[3] = max(box[3], pos[1])
     return box
 
 class Landmarker():
