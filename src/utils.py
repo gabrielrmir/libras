@@ -10,20 +10,27 @@ def draw_hand_lines(frame, hand):
         x2,y2 = (int(hand[line[1]].x*w),int(hand[line[1]].y*h))
         cv2.line(frame,(x1,y1),(x2,y2),(255,0,0),2)
 
-def draw_box(frame, box):
+def draw_box(frame, box, pad = 0.0):
     x1,y1,x2,y2 = box
     h, w, _ = frame.shape
-    pt1 = (int(x1*w), int(y1*h))
-    pt2 = (int(x2*w), int(y2*h))
+    pt1 = (int(x1*w-pad), int(y1*h-pad))
+    pt2 = (int(x2*w+pad), int(y2*h+pad))
     cv2.rectangle(frame, pt1, pt2, (0,255,0), 2)
 
 def draw_hand(frame, hand):
     h, w, _ = frame.shape
-
     draw_hand_lines(frame,hand)
     for pos in hand:
         x,y = (int(pos.x*w),int(pos.y*h))
         cv2.circle(frame,(x,y), 8, (0,0,255), -1)
+
+def draw_hands(frame, landmarker):
+    hands = landmarker.result.hand_landmarks
+    for hand in hands:
+        draw_hand(frame,hand)
+
+def draw_text(frame, text, pos, color = (0,0,0)):
+    cv2.putText(frame, text, pos, 0, 1, color, 2)
 
 def hand_to_1d_array(hand):
     arr = []

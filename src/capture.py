@@ -1,41 +1,52 @@
 import cv2
 import utils
-import os
+import math
 
 from landmarker import Landmarker
+from camera import Camera
 from dataset import Dataset
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
 
-CAMERA_INDEX = 0
-if "CAMERA_INDEX" in os.environ:
-    try:
-        CAMERA_INDEX = int(os.environ["CAMERA_INDEX"])
-    except:
-        print("[ERROR] Invalid camera index")
-        exit(1)
+capture_dir = 'data/capture'
+dataset_path = 'data/capture.csv'
+label = 'a'
 
-cap = cv2.VideoCapture(CAMERA_INDEX)
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit(1)
+cam = Camera()
+cap = cam.cap
+w, h = cam.size
 
-landmarker = Landmarker(RunningMode.LIVE_STREAM)
-dataset = Dataset("./data/dataset.csv")
+running_mode = RunningMode.LIVE_STREAM
+landmarker = Landmarker(running_mode)
 
-ret, frame = cap.read()
-if not ret: exit(1)
-h, w, _ = frame.shape
+dataset = Dataset(dataset_path)
 
+def handle_input():
+    global label
 
-def draw_hands(frame):
-    hands = landmarker.result.hand_landmarks
-    for hand in hands:
-        utils.draw_hand(frame,hand)
+    key = cv2.waitKey(1)
+    if key == ord('l'):
+        label = input('label>')
+    elif key == ord('c') and landmarker.has_result():
+        hand = landmarker.result.hand_world_landmarks[0]
+        dataset.save(label, hand)
+        # p = Path(capture_dir, label)
+        # p.mkdir(mode=0o755, parents=True, exist_ok=True)
+        # filename = uuid.uuid4().hex + '.jpg'
+        # cv2.imwrite(str(p / filename), cropped_im)
+    elif key == 27: # esc
+        exit(0)
 
-def handle_key(key):
-    hand = landmarker.result.hand_world_landmarks[0]
-    if key >= 97 and key <= 122:
-        dataset.save(chr(key), hand)
+def draw(frame):
+    landmarker.detect(frame)
+    if not landmarker.has_result(): return
+
+    utils.draw_hands(frame, landmarker)
+    boxes = landmarker.get_hands_boundaries()
+    for box in boxes:
+        w = box[2]-box[0]
+        h = box[3]-box[1]
+        d = math.sqrt(w*w+h*h)
+        utils.draw_box(frame, box, d*50)
 
 while True:
     ret, frame = cap.read()
@@ -43,20 +54,11 @@ while True:
         print("Unable to receive frame. Exiting...")
         break
 
-    landmarker.detect(frame)
-
-    key = cv2.waitKey(1)
-    if key == 27: # esc
-        break
-
-    if landmarker.has_result():
-        handle_key(key)
-        draw_hands(frame)
-        boxes = landmarker.get_hands_boundaries()
-        for box in boxes:
-            utils.draw_box(frame, box)
+    handle_input()
+    draw(frame)
 
     cv2.flip(frame, 1, frame)
+    utils.draw_text(frame, 'Label: ' + label, (10,40))
     cv2.imshow('Libras', frame)
 
 landmarker.close()
