@@ -10,18 +10,20 @@ from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTa
 capture_dir = 'data/capture'
 dataset_path = 'data/capture.csv'
 label = 'a'
+request_frame = False
 
 cam = Camera()
 cap = cam.cap
 w, h = cam.size
 
 running_mode = RunningMode.LIVE_STREAM
+# running_mode = RunningMode.IMAGE
 landmarker = Landmarker(running_mode)
 
 dataset = Dataset(dataset_path)
 
 def handle_input():
-    global label
+    global label, request_frame
 
     key = cv2.waitKey(1)
     if key == ord('l'):
@@ -33,12 +35,14 @@ def handle_input():
         # p.mkdir(mode=0o755, parents=True, exist_ok=True)
         # filename = uuid.uuid4().hex + '.jpg'
         # cv2.imwrite(str(p / filename), cropped_im)
+    elif key == ord('u'):
+        request_frame = True
     elif key == 27: # esc
-        exit(0)
+        quit(0)
 
-def draw(frame):
+def draw_landmarker(frame):
     landmarker.detect(frame)
-    if not landmarker.has_result(): return
+    if not landmarker.has_result(): return False
 
     utils.draw_hands(frame, landmarker)
     boxes = landmarker.get_hands_boundaries()
@@ -48,19 +52,34 @@ def draw(frame):
         d = math.sqrt(w*w+h*h)
         utils.draw_box(frame, box, d*50)
 
-while True:
+    return True
+
+def draw():
+    global request_frame
+
     ret, frame = cap.read()
     if not ret:
         print("Unable to receive frame. Exiting...")
-        break
-
-    handle_input()
-    draw(frame)
+        quit(0)
 
     cv2.flip(frame, 1, frame)
     utils.draw_text(frame, 'Label: ' + label, (10,40))
+
+    if running_mode != RunningMode.IMAGE or request_frame:
+        capture_frame = frame.copy()
+        draw_landmarker(capture_frame)
+        cv2.imshow('Capture', capture_frame)
+        request_frame = False
+
     cv2.imshow('Libras', frame)
 
-landmarker.close()
-cap.release()
-cv2.destroyAllWindows()
+def quit(exit_code = 0):
+    landmarker.close()
+    cap.release()
+    cv2.destroyAllWindows()
+    exit(exit_code)
+
+if __name__ == '__main__':
+    while True:
+        handle_input()
+        draw()

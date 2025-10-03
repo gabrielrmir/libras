@@ -12,7 +12,7 @@ class Camera():
                 exit(1)
 
         self.cap = cv2.VideoCapture(CAMERA_INDEX)
-        
+
         if not self.cap.isOpened():
             print("Cannot open camera")
             exit(1)
