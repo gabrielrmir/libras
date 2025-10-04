@@ -21,7 +21,7 @@ def _get_bounding_box(hand):
     return box
 
 class Landmarker():
-    def __init__(self, mode: RunningMode):
+    def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
         self.result = HandLandmarkerResult
         self.landmarker = self.create_landmarker(mode)
         self.running_mode = mode
