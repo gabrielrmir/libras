@@ -14,3 +14,9 @@ class Dataset():
         l.insert(0, label)
         pd.DataFrame([l]).to_csv(self.filename, mode='a', header=False, index=False)
         print('saved hand as label: ' + label)
+    
+def load_dataset(filename):
+    df = pd.read_csv(filename, header=None)
+    X = df.iloc[:,1:].to_numpy()
+    y = df.iloc[:,0].to_numpy()
+    return (X, y)
