@@ -1,4 +1,3 @@
-from functools import reduce
 from mediapipe.tasks.python.components.containers.landmark import Landmark
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
@@ -7,6 +6,8 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 import mediapipe as mp
 import time
 import utils
+import numpy as np
+from options import landmarker_model_path
 
 def _get_bounding_box(hand):
     hand = utils.hand_to_points_array(hand)
@@ -23,18 +24,31 @@ def _get_bounding_box(hand):
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
         self.result = HandLandmarkerResult
+        self.last_result = HandLandmarkerResult
+
         self.landmarker = self.create_landmarker(mode)
         self.running_mode = mode
         self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect
 
+        # Movimento relativo acumulado para a ponta dos dedos
+        self.local_motion = np.ndarray((5,2))
+
+        # Movimento relativo da mão
+        # O movimento é calculado através do centróide formado pelos pontos 0, 5 e 17
+        self.global_motion = np.ndarray((2,))
+
+    def _detect_callback(self, result, output_image, timestamp_ms):
+        self.result = result
+
     def create_landmarker(self, mode: RunningMode):
-        def callback(result, output_image, timestamp_ms):
-            self.result = result
+        callback = None
+        if mode == RunningMode.LIVE_STREAM:
+            callback = self._detect_callback
 
         options = HandLandmarkerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path='./models/hand_landmarker.task'),
+            base_options=mp.tasks.BaseOptions(model_asset_path=landmarker_model_path),
             running_mode=mode,
-            result_callback=callback if mode == RunningMode.LIVE_STREAM else None)
+            result_callback=callback)
 
         return HandLandmarker.create_from_options(options)
 

@@ -1,16 +1,17 @@
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
+import cv2
 
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+
+# from sklearn.model_selection import train_test_split
+# from sklearn.preprocessing import StandardScaler
+# from sklearn.metrics import accuracy_score
+
+import utils
 from dataset import load_dataset
 from camera import Camera
-import utils
-import cv2
 from landmarker import Landmarker
-
-dataset_path = "./data/capture.csv"
+from options import dataset_path
 
 # X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, random_state=0)
 # accuracy = accuracy_score(y_test, y_pred)
@@ -50,7 +51,6 @@ if __name__ == '__main__':
             box = landmarker.get_hands_boundaries()[0]
             utils.draw_box(frame, box)
             label = str(classifier.predict([hand]))
-
 
         cv2.flip(frame, 1, frame)
         utils.draw_text(frame, label, (10,40))

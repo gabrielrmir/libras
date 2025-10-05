@@ -1,14 +1,14 @@
+from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
 import cv2
-import utils
 import math
 
+import utils
 from landmarker import Landmarker
 from camera import Camera
 from dataset import Dataset
-from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
+from options import dataset_path
 
 capture_dir = 'data/capture'
-dataset_path = 'data/capture.csv'
 label = 'a'
 request_frame = False
 
