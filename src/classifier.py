@@ -22,7 +22,7 @@ class Classifier():
         X, y = load_dataset(dataset_path)
         self.clf = Pipeline(steps=[
             # ("scaler", StandardScaler()),
-            ("knn", KNeighborsClassifier(n_neighbors=11))
+            ("knn", KNeighborsClassifier(weights='distance', n_neighbors=11))
         ])
         self.clf.fit(X,y)
     def predict(self, X):

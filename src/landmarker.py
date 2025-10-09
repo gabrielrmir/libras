@@ -1,4 +1,5 @@
-from mediapipe.tasks.python.components.containers.landmark import Landmark
+# from mediapipe.tasks.python.components.containers.landmark import Landmark
+
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
@@ -10,7 +11,7 @@ import numpy as np
 from options import landmarker_model_path
 
 def _get_bounding_box(hand):
-    hand = utils.hand_to_points_array(hand)
+    hand = utils.hand_to_2d_array(hand)
     if hand == None: return None
     pos = hand.pop()
     box = [pos[0], pos[1], pos[0], pos[1]]
@@ -30,14 +31,14 @@ class Landmarker():
         self.running_mode = mode
         self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect
 
-        # Movimento relativo acumulado para a ponta dos dedos
+        # Movimento relativo acumulado para a ponta dos dedos (4, 8, 12, 16, 20)
         self.local_motion = np.ndarray((5,2))
 
         # Movimento relativo da mão
         # O movimento é calculado através do centróide formado pelos pontos 0, 5 e 17
         self.global_motion = np.ndarray((2,))
 
-    def _detect_callback(self, result, output_image, timestamp_ms):
+    def _detect_callback(self, result, *_):
         self.result = result
 
     def create_landmarker(self, mode: RunningMode):
@@ -53,13 +54,10 @@ class Landmarker():
         return HandLandmarker.create_from_options(options)
 
     def _detect(self, frame):
-        print("detecting...")
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
             data=frame)
         self.result = self.landmarker.detect(mp_image)
-        print(self.result)
-        print("ok")
 
     def _detect_async(self, frame):
         mp_image = mp.Image(

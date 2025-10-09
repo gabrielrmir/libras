@@ -40,7 +40,7 @@ def hand_to_1d_array(hand):
         arr.append(pos.y)
     return arr
 
-def hand_to_points_array(hand):
+def hand_to_2d_array(hand):
     arr = []
     for pos in hand:
         if pos.x == None or pos.y == None: return None

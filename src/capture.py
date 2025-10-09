@@ -10,20 +10,18 @@ from options import dataset_path
 
 capture_dir = 'data/capture'
 label = 'a'
-request_frame = False
 
 cam = Camera()
 cap = cam.cap
 w, h = cam.size
 
 running_mode = RunningMode.LIVE_STREAM
-# running_mode = RunningMode.IMAGE
 landmarker = Landmarker(running_mode)
 
 dataset = Dataset(dataset_path)
 
 def handle_input():
-    global label, request_frame
+    global label
 
     key = cv2.waitKey(1)
     if key == ord('l'):
@@ -35,9 +33,7 @@ def handle_input():
         # p.mkdir(mode=0o755, parents=True, exist_ok=True)
         # filename = uuid.uuid4().hex + '.jpg'
         # cv2.imwrite(str(p / filename), cropped_im)
-    elif key == ord('u'):
-        request_frame = True
-    elif key == 27: # esc
+    elif key == 27 or key == ord('q'): # esc
         quit(0)
 
 def draw_landmarker(frame):
@@ -55,21 +51,14 @@ def draw_landmarker(frame):
     return True
 
 def draw():
-    global request_frame
-
     ret, frame = cap.read()
     if not ret:
         print("Unable to receive frame. Exiting...")
         quit(0)
 
+    draw_landmarker(frame)
     cv2.flip(frame, 1, frame)
     utils.draw_text(frame, 'Label: ' + label, (10,40))
-
-    if running_mode != RunningMode.IMAGE or request_frame:
-        capture_frame = frame.copy()
-        draw_landmarker(capture_frame)
-        cv2.imshow('Capture', capture_frame)
-        request_frame = False
 
     cv2.imshow('Libras', frame)
 
