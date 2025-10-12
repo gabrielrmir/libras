@@ -1,6 +1,12 @@
 import cv2
+import numpy as np
+import math
+
+# Conexões entre os pontos da mão
 
 lines = [(0,1),(1,2),(2,3),(3,4),(0,5),(5,6),(6,7),(7,8),(5,9),(9,10),(10,11),(11,12),(9,13),(13,14),(14,15),(15,16),(13,17),(0,17),(17,18),(18,19),(19,20)]
+
+# Desenhos
 
 def draw_hand_lines(frame, hand):
     h, w, _ = frame.shape
@@ -46,3 +52,29 @@ def hand_to_2d_array(hand):
         if pos.x == None or pos.y == None: return None
         arr.append((pos.x, pos.y))
     return arr
+
+# Cálculos vetoriais
+
+def vec_len(np_arr):
+    return math.sqrt((np_arr**2).sum())
+
+def vec_norm(np_arr):
+    l = vec_len(np_arr)
+    if l == 0:
+        np.zeros(np_arr.shape)
+    return np_arr/l
+
+# Array circular de vetores
+
+class CArray():
+    def __init__(self, shape):
+        self._arr = np.zeros(shape)
+        self._front = 0
+        self._size = shape[0]
+
+    def push(self, elem):
+        self._arr[self._front] = elem
+        self._front = (self._front+1)%self._size
+
+    def avg(self):
+        return self._arr.sum(axis=0)/self._size

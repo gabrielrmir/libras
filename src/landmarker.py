@@ -7,6 +7,7 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 import mediapipe as mp
 import time
 import utils
+from utils import CArray
 import numpy as np
 from options import landmarker_model_path
 
@@ -25,21 +26,43 @@ def _get_bounding_box(hand):
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
         self.result = HandLandmarkerResult
-        self.last_result = HandLandmarkerResult
+        # self.last_result = HandLandmarkerResult
 
         self.landmarker = self.create_landmarker(mode)
         self.running_mode = mode
-        self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect
+        self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect_sync
 
         # Movimento relativo acumulado para a ponta dos dedos (4, 8, 12, 16, 20)
+        # TODO: Implementar movimentação local
         self.local_motion = np.ndarray((5,2))
 
-        # Movimento relativo da mão
-        # O movimento é calculado através do centróide formado pelos pontos 0, 5 e 17
-        self.global_motion = np.ndarray((2,))
+        # == Movimento relativo da mão ==
+        # O movimento é calculado em relação ao ponto 0
+        # Obs.: Talvez seja interessante utilizar o centróide [0,5,17] ao invés
+        # de um único ponto
+        self.global_motion = CArray((5,3))
 
     def _detect_callback(self, result, *_):
+        had_result = self.has_result()
+        last_result = self.result
         self.result = result
+
+        if not had_result or not self.has_result():
+            return
+
+        hand = self.result.hand_landmarks[0]
+        last_hand = last_result.hand_landmarks[0]
+        p0_last = np.array([last_hand[0].x,last_hand[0].y,last_hand[0].z])
+        p0 = np.array([hand[0].x,hand[0].y,hand[0].z])
+        p1 = np.array([hand[1].x,hand[1].y,hand[1].z])
+
+        # == Cálculo de movimentação ==
+        # O vetor de movimento deve ser convertido para uma escala onde a
+        # distância entre os pontos 0 e 1 deve ser sempre igual à 1. Isso ajuda
+        # a garantir uma movimentação independente da profundidade da mão.
+        motion = p0-p0_last
+        l = utils.vec_len(motion)/utils.vec_len(p1-p0)
+        self.global_motion.push(utils.vec_norm(motion)*l)
 
     def create_landmarker(self, mode: RunningMode):
         callback = None
@@ -53,11 +76,11 @@ class Landmarker():
 
         return HandLandmarker.create_from_options(options)
 
-    def _detect(self, frame):
+    def _detect_sync(self, frame):
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
             data=frame)
-        self.result = self.landmarker.detect(mp_image)
+        self._detect_callback(self.landmarker.detect(mp_image))
 
     def _detect_async(self, frame):
         mp_image = mp.Image(
