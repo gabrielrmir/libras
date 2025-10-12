@@ -1,6 +1,7 @@
 import cv2
 
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.pipeline import Pipeline
 
 # from sklearn.model_selection import train_test_split
@@ -21,8 +22,13 @@ class Classifier():
     def __init__(self, dataset_path):
         X, y = load_dataset(dataset_path)
         self.clf = Pipeline(steps=[
+            # Os dados provenientes do MediaPipe já são normalizados, esta etapa não é necessária
             # ("scaler", StandardScaler()),
+
+            # Diferentes algoritmos
+            # TODO: adicionar option para qual tipo de classificador usar + option para n_neighbors
             ("knn", KNeighborsClassifier(weights='distance', n_neighbors=11))
+            # ("random_forest", RandomForestClassifier())
         ])
         self.clf.fit(X,y)
     def predict(self, X):

@@ -40,7 +40,7 @@ class StateHandler():
         self.last_position = (0,0)
         self._start = True
         self.max_states = 10
-    
+
     # Extrair informações dos landmarks e 
     # criar estado a partir dessas informações
     # já se assume que os landmarks já foram classificados
