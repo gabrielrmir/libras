@@ -6,7 +6,7 @@ class Dataset():
         self.filename = filename
 
     def save(self, label, hand):
-        l = utils.hand_to_1d_array(hand)
+        l = utils.hand_to_2d_array(hand).flatten().tolist()
         if l == None:
             print('could not save hand to dataset')
             return

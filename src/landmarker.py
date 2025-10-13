@@ -11,26 +11,73 @@ from utils import CArray
 import numpy as np
 from options import landmarker_model_path
 
-def _get_bounding_box(hand):
-    hand = utils.hand_to_2d_array(hand)
-    if hand == None: return None
-    pos = hand.pop()
-    box = [pos[0], pos[1], pos[0], pos[1]]
-    for pos in hand:
-        box[0] = min(box[0], pos[0])
-        box[1] = min(box[1], pos[1])
-        box[2] = max(box[2], pos[0])
-        box[3] = max(box[3], pos[1])
-    return box
+def _is_empty(result: HandLandmarkerResult | None):
+    return (not result) or \
+        (not hasattr(result, "hand_landmarks")) or \
+        len(result.hand_landmarks) == 0
+
+class Result():
+    class _world():
+        def __init__(self, res):
+            self._parent: Result
+            self._parent = res
+
+        def get_hand(self):
+            assert(self._parent._result != None)
+            return self._parent._result.hand_world_landmarks[0]
+
+        def __getitem__(self, key: int) -> tuple[float, float, float]:
+            assert(self._parent._result != None)
+            pos = self._parent._result.hand_world_landmarks[0][key]
+            return (pos.x, pos.y, pos.z)
+        
+        def __len__(self):
+            if self._parent.is_empty():
+                return 0
+            assert(self._parent._result != None)
+            return len(self._parent._result.hand_landmarks[0])
+
+    def __init__(self, result = None):
+        self._result: HandLandmarkerResult | None
+        self._result = result
+        self.world = self._world(self)
+        self._empty = _is_empty(result)
+
+    def get_hand(self):
+        assert(self._result != None)
+        return self._result.hand_landmarks[0]
+
+    def set(self, new_result):
+        self._result = new_result
+        self._empty = _is_empty(new_result)
+
+    def __getitem__(self, key: int) -> tuple[float, float, float]:
+        assert(self._result != None)
+        pos = self._result.hand_landmarks[0][key]
+        return (pos.x, pos.y, pos.z)
+
+    def __len__(self):
+        if self.is_empty():
+            return 0
+        assert(self._result != None)
+        return len(self._result.hand_landmarks[0])
+
+    def is_empty(self):
+        return self._empty
 
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
-        self.result = HandLandmarkerResult
-        # self.last_result = HandLandmarkerResult
+        self.result: Result
+        self.result = Result()
+
+        self._prev_result: Result
+        self._prev_result = Result()
 
         self.landmarker = self.create_landmarker(mode)
         self.running_mode = mode
-        self.detect = self._detect_async if mode == RunningMode.LIVE_STREAM else self._detect_sync
+        self.detect = self._detect_async
+        if mode != RunningMode.LIVE_STREAM:
+            self.detect = self._detect_sync
 
         # Movimento relativo acumulado para a ponta dos dedos (4, 8, 12, 16, 20)
         # TODO: Implementar movimentação local
@@ -43,18 +90,16 @@ class Landmarker():
         self.global_motion = CArray((5,3))
 
     def _detect_callback(self, result, *_):
-        had_result = self.has_result()
-        last_result = self.result
-        self.result = result
+        self._prev_result.set(self.result._result)
+        self.result.set(result)
 
-        if not had_result or not self.has_result():
+        if self._prev_result.is_empty() or \
+            self.result.is_empty():
             return
 
-        hand = self.result.hand_landmarks[0]
-        last_hand = last_result.hand_landmarks[0]
-        p0_last = np.array([last_hand[0].x,last_hand[0].y,last_hand[0].z])
-        p0 = np.array([hand[0].x,hand[0].y,hand[0].z])
-        p1 = np.array([hand[1].x,hand[1].y,hand[1].z])
+        p0_last = np.array(self._prev_result[0])
+        p0 = np.array(self.result[0])
+        p1 = np.array(self.result[1])
 
         # == Cálculo de movimentação ==
         # O vetor de movimento deve ser convertido para uma escala onde a
@@ -90,18 +135,20 @@ class Landmarker():
             mp_image,
             int(time.time()*1000))
 
-    def has_result(self):
-        return hasattr(self.result, "hand_landmarks") and \
-            len(self.result.hand_world_landmarks)
+    def get_hand_rect(self):
+        assert(not self.result.is_empty())
 
-    def get_hands_boundaries(self):
-        boxes = []
-        if not self.has_result(): return []
-        for hand in self.result.hand_landmarks:
-            box = _get_bounding_box(hand)
-            if box == None: continue
-            boxes.append(box)
-        return boxes
+        p0 = self.result[0]
+        rect = [p0[0], p0[1], p0[0], p0[1]]
+
+        for i in range(1, len(self.result)):
+            pos = self.result[i]
+            rect[0] = min(rect[0], pos[0])
+            rect[1] = min(rect[1], pos[1])
+            rect[2] = max(rect[2], pos[0])
+            rect[3] = max(rect[3], pos[1])
+
+        return rect
 
     def close(self):
         self.landmarker.close()

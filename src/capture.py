@@ -26,9 +26,8 @@ def handle_input():
     key = cv2.waitKey(1)
     if key == ord('l'):
         label = input('label>')
-    elif key == ord('c') and landmarker.has_result():
-        hand = landmarker.result.hand_world_landmarks[0]
-        dataset.save(label, hand)
+    elif key == ord('c') and not landmarker.result.is_empty():
+        dataset.save(label, landmarker.result.world.get_hand())
         # p = Path(capture_dir, label)
         # p.mkdir(mode=0o755, parents=True, exist_ok=True)
         # filename = uuid.uuid4().hex + '.jpg'
@@ -36,17 +35,17 @@ def handle_input():
     elif key == 27 or key == ord('q'): # esc
         quit(0)
 
-def draw_landmarker(frame):
+def draw_landmarks(frame):
     landmarker.detect(frame)
-    if not landmarker.has_result(): return False
+    if landmarker.result.is_empty():
+        return False
 
-    utils.draw_hands(frame, landmarker)
-    boxes = landmarker.get_hands_boundaries()
-    for box in boxes:
-        w = box[2]-box[0]
-        h = box[3]-box[1]
-        d = math.sqrt(w*w+h*h)
-        utils.draw_box(frame, box, d*50)
+    utils.draw_hand(frame, landmarker.result.get_hand())
+    rect = landmarker.get_hand_rect()
+    w = rect[2]-rect[0]
+    h = rect[3]-rect[1]
+    d = math.sqrt(w*w+h*h)
+    utils.draw_rect(frame, rect, d*50)
 
     return True
 
@@ -56,7 +55,7 @@ def draw():
         print("Unable to receive frame. Exiting...")
         quit(0)
 
-    draw_landmarker(frame)
+    draw_landmarks(frame)
     cv2.flip(frame, 1, frame)
     utils.draw_text(frame, 'Label: ' + label, (10,40))
 
