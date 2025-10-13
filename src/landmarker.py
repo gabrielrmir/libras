@@ -26,10 +26,10 @@ class Result():
             assert(self._parent._result != None)
             return self._parent._result.hand_world_landmarks[0]
 
-        def __getitem__(self, key: int) -> tuple[float, float, float]:
+        def __getitem__(self, key: int):
             assert(self._parent._result != None)
             pos = self._parent._result.hand_world_landmarks[0][key]
-            return (pos.x, pos.y, pos.z)
+            return np.array((pos.x, pos.y, pos.z))
         
         def __len__(self):
             if self._parent.is_empty():
@@ -51,10 +51,10 @@ class Result():
         self._result = new_result
         self._empty = _is_empty(new_result)
 
-    def __getitem__(self, key: int) -> tuple[float, float, float]:
+    def __getitem__(self, key: int):
         assert(self._result != None)
         pos = self._result.hand_landmarks[0][key]
-        return (pos.x, pos.y, pos.z)
+        return np.array((pos.x, pos.y, pos.z))
 
     def __len__(self):
         if self.is_empty():
@@ -80,8 +80,14 @@ class Landmarker():
             self.detect = self._detect_sync
 
         # Movimento relativo acumulado para a ponta dos dedos (4, 8, 12, 16, 20)
-        # TODO: Implementar movimentação local
-        self.local_motion = np.ndarray((5,2))
+        self.local_index = (4, 8, 12, 16, 20)
+        self.local_motion = [
+            CArray((5,3)),
+            CArray((5,3)),
+            CArray((5,3)),
+            CArray((5,3)),
+            CArray((5,3))
+        ]
 
         # == Movimento relativo da mão ==
         # O movimento é calculado em relação ao ponto 0
@@ -97,17 +103,23 @@ class Landmarker():
             self.result.is_empty():
             return
 
-        p0_last = np.array(self._prev_result[0])
-        p0 = np.array(self.result[0])
-        p1 = np.array(self.result[1])
-
         # == Cálculo de movimentação ==
         # O vetor de movimento deve ser convertido para uma escala onde a
         # distância entre os pontos 0 e 1 deve ser sempre igual à 1. Isso ajuda
         # a garantir uma movimentação independente da profundidade da mão.
-        motion = p0-p0_last
-        l = utils.vec_len(motion)/utils.vec_len(p1-p0)
-        self.global_motion.push(utils.vec_norm(motion)*l)
+
+        p0 = np.array(self.result[0])
+        p1 = np.array(self.result[1])
+        scale = utils.vec_len(p1-p0)
+
+        pc_last = (self._prev_result[0]+self._prev_result[5]+self._prev_result[17])/3
+        pc = (self.result[0]+self.result[5]+self.result[17])/3
+        centroid_motion = pc-pc_last
+        self.global_motion.push(centroid_motion/scale)
+
+        for i in range(len(self.local_index)):
+            j = self.local_index[i]
+            self.local_motion[i].push((self.result[j]-self._prev_result[j])/scale)
 
     def create_landmarker(self, mode: RunningMode):
         callback = None

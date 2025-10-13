@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import typing
 
 from sklearn.neighbors import KNeighborsClassifier
 # from sklearn.ensemble import RandomForestClassifier
@@ -28,12 +29,16 @@ class Classifier():
     def predict(self, X):
         return self.clf.predict(X)
 
+def draw_motion_line(frame, pt1, dir):
+    cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
+
 if __name__ == '__main__':
     cv2.namedWindow("Classifier", cv2.WINDOW_AUTOSIZE | cv2.WINDOW_GUI_NORMAL)
     classifier = Classifier(dataset_path)
     landmarker = Landmarker()
     cam = Camera()
     cap = cam.cap
+    center: typing.Any
     center = np.array(cam.size, dtype=int)//2
 
     while True:
@@ -57,9 +62,14 @@ if __name__ == '__main__':
             if utils.vec_len(dir) > .1:
                 is_moving = True
 
-            utils.vec_len(dir)
-            line_end = (center+dir[:2]*100).astype(int).tolist()
-            cv2.line(frame, center.tolist(), line_end, (255,0,0), 5)
+            dir = (dir[:2]*100).astype(int)
+            draw_motion_line(frame, center, dir)
+
+            x = 150
+            for m in landmarker.local_motion:
+                motion = (m.avg()[:2]*100).astype(int)
+                draw_motion_line(frame, center+np.array([x, -100]), motion)
+                x -= 75
 
             hand = utils.hand_to_2d_array(landmarker.result.world.get_hand()).flatten()
             y = classifier.predict([hand])[0]
