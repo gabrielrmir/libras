@@ -16,7 +16,7 @@ class CaptureTask(Task):
         if key == ord('l'):
             self.label = input('label>')
         elif key == ord('c'):
-            self.dataset.save(self.label, self.landmarker.world_result)
+            self.dataset.save(self.label, self.landmarker.world_result[:,:2])
         elif key == ord('f'):
             self.frozen = not self.frozen
 
