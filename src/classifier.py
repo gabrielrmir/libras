@@ -3,27 +3,27 @@ import numpy as np
 import typing
 
 from sklearn.neighbors import KNeighborsClassifier
-# from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline
-
+from sklearn.ensemble import RandomForestClassifier
 import utils
 from dataset import load_dataset
 from camera import Camera
 from landmarker import Landmarker
-from options import dataset_path
+from options import dataset_path, classifier_algorithm
+
+def _load_clf(option):
+    match option:
+        case 'knn':
+            return KNeighborsClassifier(weights='distance', n_neighbors=11)
+        case 'randomforest':
+            return RandomForestClassifier()
+        case _:
+            print("[ERROR]: invalid classifier algorithm")
+            exit(1)
 
 class Classifier():
     def __init__(self, dataset_path):
         X, y = load_dataset(dataset_path)
-        self.clf = Pipeline(steps=[
-            # Os dados provenientes do MediaPipe já são normalizados, esta etapa não é necessária
-            # ("scaler", StandardScaler()),
-
-            # Diferentes algoritmos
-            # TODO: adicionar option para qual tipo de classificador usar + option para n_neighbors
-            ("knn", KNeighborsClassifier(weights='distance', n_neighbors=11))
-            # ("random_forest", RandomForestClassifier())
-        ])
+        self.clf = _load_clf(classifier_algorithm)
         self.clf.fit(X,y)
 
     def predict(self, X):
