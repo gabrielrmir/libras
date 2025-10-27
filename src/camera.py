@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 
 class Camera():
     def __init__(self):
@@ -10,7 +11,6 @@ class Camera():
             except:
                 print("[ERROR] Invalid camera index")
                 exit(1)
-
         self.cap = cv2.VideoCapture(CAMERA_INDEX)
 
         if not self.cap.isOpened():
@@ -22,3 +22,4 @@ class Camera():
 
         h, w, _ = frame.shape
         self.size = (w, h)
+        self.center = np.array(self.size, dtype=int)//2

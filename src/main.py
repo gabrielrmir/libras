@@ -1,8 +1,8 @@
 import sys
-import options
 
-import classifier
 import capture
+import classifier
+import options
 import statistics
 
 def _err_invalid():

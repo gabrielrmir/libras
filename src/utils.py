@@ -1,36 +1,5 @@
-import cv2
 import numpy as np
 import math
-
-# Conexões entre os pontos da mão
-
-LINES = ((0,1),(1,2),(2,3),(3,4),(0,5),(5,6),(6,7),(7,8),(5,9),(9,10),(10,11),(11,12),(9,13),(13,14),(14,15),(15,16),(13,17),(0,17),(17,18),(18,19),(19,20))
-
-# Desenhos
-
-def draw_hand_lines(frame, hand):
-    h, w, _ = frame.shape
-    for line in LINES:
-        pt1 = (int(hand[line[0]].x*w),int(hand[line[0]].y*h))
-        pt2 = (int(hand[line[1]].x*w),int(hand[line[1]].y*h))
-        cv2.line(frame, pt1, pt2 ,(255,0,0),2)
-
-def draw_rect(frame, rect, pad = 0.0):
-    x1,y1,x2,y2 = rect
-    h, w, _ = frame.shape
-    pt1 = (int(x1*w-pad), int(y1*h-pad))
-    pt2 = (int(x2*w+pad), int(y2*h+pad))
-    cv2.rectangle(frame, pt1, pt2, (0,255,0), 2)
-
-def draw_hand(frame, hand):
-    h, w, _ = frame.shape
-    draw_hand_lines(frame,hand)
-    for pos in hand:
-        x,y = (int(pos.x*w),int(pos.y*h))
-        cv2.circle(frame,(x,y), 8, (0,0,255), -1)
-
-def draw_text(frame, text, pos, color = (0,0,0)):
-    cv2.putText(frame, text, pos, 0, 1, color, 2)
 
 def hand_to_2d_array(hand):
     arr = np.zeros((len(hand),2))

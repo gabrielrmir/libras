@@ -1,76 +1,47 @@
-from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
-import cv2
-import math
-
-import utils
-from landmarker import Landmarker
-from camera import Camera
 from dataset import Dataset
+from task import Task
+
 from options import dataset_path
+import utils
+import draw
 
-capture_dir = 'data/capture'
-label = 'a'
+class CaptureTask(Task):
+    def __init__(self):
+        super().__init__('Libras')
+        self.label = 'a'
+        self.dataset = Dataset(dataset_path)
 
-cam = Camera()
-cap = cam.cap
-w, h = cam.size
+    def _input(self, key):
+        if key == ord('l'):
+            self.label = input('label>')
+        elif key == ord('c') and \
+            not self.landmarker.result.is_empty():
+            self.dataset.save(self.label,
+                self.landmarker.result.world.get_hand())
 
-running_mode = RunningMode.LIVE_STREAM
-landmarker = Landmarker(running_mode)
+            # p = Path(capture_dir, label)
+            # p.mkdir(mode=0o755, parents=True, exist_ok=True)
+            # filename = uuid.uuid4().hex + '.jpg'
+            # cv2.imwrite(str(p / filename), cropped_im)
 
-dataset = Dataset(dataset_path)
+    def _process(self, frame):
+        draw.text(frame, f'Label: {self.label}', (10,40))
 
-def handle_input():
-    global label
+        self.landmarker.detect(frame)
+        if self.landmarker.result.is_empty():
+            return
 
-    key = cv2.waitKey(1)
-    if key == ord('l'):
-        label = input('label>')
-    elif key == ord('c') and not landmarker.result.is_empty():
-        dataset.save(label, landmarker.result.world.get_hand())
-        # p = Path(capture_dir, label)
-        # p.mkdir(mode=0o755, parents=True, exist_ok=True)
-        # filename = uuid.uuid4().hex + '.jpg'
-        # cv2.imwrite(str(p / filename), cropped_im)
-    elif key == 27 or key == ord('q'): # esc
-        quit(0)
+        hand = self.landmarker.result.get_hand()
+        hand = (utils.hand_to_2d_array(hand)*self.cam.size).astype(int)
 
-def draw_landmarks(frame):
-    landmarker.detect(frame)
-    if landmarker.result.is_empty():
-        return False
-
-    utils.draw_hand(frame, landmarker.result.get_hand())
-    rect = landmarker.get_hand_rect()
-    w = rect[2]-rect[0]
-    h = rect[3]-rect[1]
-    d = math.sqrt(w*w+h*h)
-    utils.draw_rect(frame, rect, d*50)
-
-    return True
-
-def draw():
-    ret, frame = cap.read()
-    if not ret:
-        print("Unable to receive frame. Exiting...")
-        quit(0)
-
-    draw_landmarks(frame)
-    cv2.flip(frame, 1, frame)
-    utils.draw_text(frame, 'Label: ' + label, (10,40))
-
-    cv2.imshow('Libras', frame)
-
-def quit(exit_code = 0):
-    landmarker.close()
-    cap.release()
-    cv2.destroyAllWindows()
-    exit(exit_code)
+        draw.hand_box(frame, hand)
+        draw.hand_lines(frame, hand)
+        draw.hand_dots(frame, hand)
 
 def main():
-    while True:
-        handle_input()
-        draw()
+    task = CaptureTask()
+    while task.running:
+        task.update()
 
 if __name__ == '__main__':
     main()

@@ -147,21 +147,7 @@ class Landmarker():
             mp_image,
             int(time.time()*1000))
 
-    def get_hand_rect(self):
-        assert(not self.result.is_empty())
-
-        p0 = self.result[0]
-        rect = [p0[0], p0[1], p0[0], p0[1]]
-
-        for i in range(1, len(self.result)):
-            pos = self.result[i]
-            rect[0] = min(rect[0], pos[0])
-            rect[1] = min(rect[1], pos[1])
-            rect[2] = max(rect[2], pos[0])
-            rect[3] = max(rect[3], pos[1])
-
-        return rect
-
     def close(self):
         self.landmarker.close()
+
 

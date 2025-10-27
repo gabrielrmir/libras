@@ -1,14 +1,11 @@
-import cv2
-import numpy as np
-import typing
-
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
-import utils
+
 from dataset import load_dataset
-from camera import Camera
-from landmarker import Landmarker
 from options import dataset_path, classifier_algorithm
+from task import Task
+import utils
+import draw
 
 def _load_clf(option):
     match option:
@@ -29,58 +26,52 @@ class Classifier():
     def predict(self, X):
         return self.clf.predict(X)
 
-def draw_motion_line(frame, pt1, dir):
-    cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
+# def draw_motion_line(frame, pt1, dir):
+#     cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
 
-def main():
-    cv2.namedWindow("Classifier", cv2.WINDOW_AUTOSIZE | cv2.WINDOW_GUI_NORMAL)
-    classifier = Classifier(dataset_path)
-    landmarker = Landmarker()
-    cam = Camera()
-    cap = cam.cap
-    center: typing.Any
-    center = np.array(cam.size, dtype=int)//2
+class ClassifierTask(Task):
+    def __init__(self):
+        super().__init__('Classifier')
+        self.classifier = Classifier(dataset_path)
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    def _process(self, frame):
+        self.landmarker.detect(frame)
+        if self.landmarker.result.is_empty():
+            return
 
-        key = cv2.waitKey(1)
-        if key == 27: # esc
-            break
-
-        label = ''
-        landmarker.detect(frame)
+        hand = self.landmarker.result.get_hand()
+        hand = (utils.hand_to_2d_array(hand)*self.cam.size).astype(int)
+        draw.hand_box(frame, hand)
 
         is_moving = False
-        if not landmarker.result.is_empty():
-            rect = landmarker.get_hand_rect()
-            utils.draw_rect(frame, rect)
+        # dir = landmarker.global_motion.avg()
+        # if utils.vec_len(dir) > .1:
+        #     is_moving = True
 
-            dir = landmarker.global_motion.avg()
-            if utils.vec_len(dir) > .1:
-                is_moving = True
+        # dir = (dir[:2]*100).astype(int)
+        # draw_motion_line(frame, center, dir)
 
-            dir = (dir[:2]*100).astype(int)
-            draw_motion_line(frame, center, dir)
+        # x = 150
+        # for m in landmarker.local_motion:
+        #     motion = (m.avg()[:2]*100).astype(int)
+        #     draw_motion_line(frame, center+np.array([x, -100]), motion)
+        #     x -= 75
 
-            x = 150
-            for m in landmarker.local_motion:
-                motion = (m.avg()[:2]*100).astype(int)
-                draw_motion_line(frame, center+np.array([x, -100]), motion)
-                x -= 75
+        hand = utils.hand_to_2d_array(
+            self.landmarker.result.world.get_hand()).flatten()
+        y = self.classifier.predict([hand])[0]
+        label = str(y)
 
-            hand = utils.hand_to_2d_array(landmarker.result.world.get_hand()).flatten()
-            y = classifier.predict([hand])[0]
-            label = str(y)
+        draw.texts(frame, [
+            f'Label: {label}',
+            f'Moving: {is_moving}',
+        ], (10,40))
 
-        cv2.flip(frame, 1, frame)
-        utils.draw_text(frame, label, (10,40))
-        utils.draw_text(frame, 'moving:'+str(is_moving), (10,80))
-        cv2.imshow('Classifier', frame)
 
-    cap.release()
+def main():
+    task = ClassifierTask()
+    while task.running:
+        task.update()
 
 if __name__ == '__main__':
     main()
