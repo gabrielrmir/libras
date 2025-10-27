@@ -32,7 +32,7 @@ class Classifier():
 def draw_motion_line(frame, pt1, dir):
     cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
 
-if __name__ == '__main__':
+def main():
     cv2.namedWindow("Classifier", cv2.WINDOW_AUTOSIZE | cv2.WINDOW_GUI_NORMAL)
     classifier = Classifier(dataset_path)
     landmarker = Landmarker()
@@ -81,3 +81,6 @@ if __name__ == '__main__':
         cv2.imshow('Classifier', frame)
 
     cap.release()
+
+if __name__ == '__main__':
+    main()

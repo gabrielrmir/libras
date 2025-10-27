@@ -6,3 +6,7 @@ landmarker_model_path = './data/hand_landmarker.task'
 # Arquivo de destino para a ferramenta de captura
 # Este arquivo também é usado para treinar o modelo de classificação de gestos
 dataset_path = "./data/capture.csv"
+
+# Opções:
+# knn, randomforest
+classifier_algorithm = "knn"

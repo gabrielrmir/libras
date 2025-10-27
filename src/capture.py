@@ -67,7 +67,10 @@ def quit(exit_code = 0):
     cv2.destroyAllWindows()
     exit(exit_code)
 
-if __name__ == '__main__':
+def main():
     while True:
         handle_input()
         draw()
+
+if __name__ == '__main__':
+    main()
