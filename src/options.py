@@ -18,3 +18,6 @@ classifier_algorithm = "knn"
 # RunningMode.VIDEO
 # RunningMode.IMAGE
 running_mode = RunningMode.LIVE_STREAM
+
+# O quão frequente a ferramenta tenta detectar os landmarks
+refresh_time = 0.01

@@ -1,9 +1,5 @@
 import sys
-
-import capture
-import classifier
 import options
-import statistics
 
 def _err_invalid():
     print("[ERROR]: Invalid usage")
@@ -26,10 +22,20 @@ def parse_flags(args):
                     _err_invalid()
                 path = args.pop(0)
                 options.landmarker_model_path = path
+            case 'refresh':
+                if len(args) == 0:
+                    _err_invalid()
+                try:
+                    refresh_time = float(args.pop(0))
+                    options.refresh_time = refresh_time
+                    print(options.refresh_time)
+                except:
+                    _err_invalid()
             case _:
                 _err_invalid()
 
 def _cmd_capture(args):
+    import capture
     capture.main()
 
 def _cmd_classifier(args):
@@ -39,6 +45,7 @@ def _cmd_classifier(args):
             options.classifier_algorithm = c
         else:
             _err_invalid()
+    import classifier
     classifier.main()
 
 def _cmd_help():
@@ -61,9 +68,13 @@ Opções:
                                     caminho em src/options.py.
     --model <path>                  Caminho para o arquivo com o modelo do hand
                                     landmarker; Caso omitido, usa o caminho em
-                                    src/options.py.""")
+                                    src/options.py.
+    --refresh <secs>                Taxa de atualização dos landmarks em
+                                    segundos; Números maiores podem melhorar a
+                                    latência; Valor padrão: 0.01""")
 
 def _cmd_stats():
+    import statistics
     statistics.main()
 
 def main():

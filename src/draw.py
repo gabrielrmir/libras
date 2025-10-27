@@ -27,6 +27,21 @@ def hand_box(frame, hand):
 # TODO: Reimplementar funções de visualização de movimento
 def motion_local(): pass
 def motion_global(): pass
+# def draw_motion_line(frame, pt1, dir):
+#     cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
+
+# dir = landmarker.global_motion.avg()
+# if utils.vec_len(dir) > .1:
+#     is_moving = True
+
+# dir = (dir[:2]*100).astype(int)
+# draw_motion_line(frame, center, dir)
+
+# x = 150
+# for m in landmarker.local_motion:
+#     motion = (m.avg()[:2]*100).astype(int)
+#     draw_motion_line(frame, center+np.array([x, -100]), motion)
+#     x -= 75
 
 def text(frame, text, pos):
     cv2.putText(frame, text, pos, 0, 1, text_color, 2)

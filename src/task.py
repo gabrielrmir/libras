@@ -25,7 +25,7 @@ class Task():
             return
 
         key = cv2.waitKey(1)
-        if key == 27: #esc:
+        if key == 27 or key == ord('q'): # <esc> ou <q> para sair:
             self._exit(0)
             return
         self._input(key)

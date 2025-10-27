@@ -1,23 +1,24 @@
-from dataset import Dataset
-from task import Task
+import time
 
-from options import dataset_path
-import utils
+from dataset import Dataset
 import draw
+from options import dataset_path, refresh_time
+from task import Task
 
 class CaptureTask(Task):
     def __init__(self):
         super().__init__('Libras')
         self.label = 'a'
         self.dataset = Dataset(dataset_path)
+        self.frozen = False
 
     def _input(self, key):
         if key == ord('l'):
             self.label = input('label>')
-        elif key == ord('c') and \
-            not self.landmarker.result.is_empty():
-            self.dataset.save(self.label,
-                self.landmarker.result.world.get_hand())
+        elif key == ord('c'):
+            self.dataset.save(self.label, self.landmarker.world_result)
+        elif key == ord('f'):
+            self.frozen = not self.frozen
 
             # p = Path(capture_dir, label)
             # p.mkdir(mode=0o755, parents=True, exist_ok=True)
@@ -25,18 +26,18 @@ class CaptureTask(Task):
             # cv2.imwrite(str(p / filename), cropped_im)
 
     def _process(self, frame):
-        draw.text(frame, f'Label: {self.label}', (10,40))
+        if not self.frozen and time.time()-self.landmarker.timestamp > refresh_time:
+            self.landmarker.detect(frame)
 
-        self.landmarker.detect(frame)
-        if self.landmarker.result.is_empty():
-            return
-
-        hand = self.landmarker.result.get_hand()
-        hand = (utils.hand_to_2d_array(hand)*self.cam.size).astype(int)
-
+        hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
         draw.hand_lines(frame, hand)
         draw.hand_dots(frame, hand)
+
+        draw.texts(frame, [
+            f'Label: {self.label}',
+            f'{'Frozen' if self.frozen else ''}'
+        ], (10,40))
 
 def main():
     task = CaptureTask()

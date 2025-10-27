@@ -1,11 +1,11 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+import time
 
 from dataset import load_dataset
-from options import dataset_path, classifier_algorithm
-from task import Task
-import utils
 import draw
+from options import dataset_path, classifier_algorithm, refresh_time
+from task import Task
 
 def _load_clf(option):
     match option:
@@ -26,39 +26,21 @@ class Classifier():
     def predict(self, X):
         return self.clf.predict(X)
 
-# def draw_motion_line(frame, pt1, dir):
-#     cv2.line(frame, pt1, pt1+dir, (255,0,0), 5)
-
 class ClassifierTask(Task):
     def __init__(self):
         super().__init__('Classifier')
         self.classifier = Classifier(dataset_path)
 
     def _process(self, frame):
-        self.landmarker.detect(frame)
-        if self.landmarker.result.is_empty():
-            return
+        if time.time()-self.landmarker.timestamp > refresh_time:
+            self.landmarker.detect(frame)
 
-        hand = self.landmarker.result.get_hand()
-        hand = (utils.hand_to_2d_array(hand)*self.cam.size).astype(int)
+        hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
 
         is_moving = False
-        # dir = landmarker.global_motion.avg()
-        # if utils.vec_len(dir) > .1:
-        #     is_moving = True
 
-        # dir = (dir[:2]*100).astype(int)
-        # draw_motion_line(frame, center, dir)
-
-        # x = 150
-        # for m in landmarker.local_motion:
-        #     motion = (m.avg()[:2]*100).astype(int)
-        #     draw_motion_line(frame, center+np.array([x, -100]), motion)
-        #     x -= 75
-
-        hand = utils.hand_to_2d_array(
-            self.landmarker.result.world.get_hand()).flatten()
+        hand = self.landmarker.world_result[:,:2].flatten()
         y = self.classifier.predict([hand])[0]
         label = str(y)
 
@@ -66,7 +48,6 @@ class ClassifierTask(Task):
             f'Label: {label}',
             f'Moving: {is_moving}',
         ], (10,40))
-
 
 def main():
     task = ClassifierTask()

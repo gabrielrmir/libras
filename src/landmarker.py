@@ -1,5 +1,3 @@
-# from mediapipe.tasks.python.components.containers.landmark import Landmark
-
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
 from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
@@ -9,7 +7,7 @@ import time
 import utils
 from utils import CArray
 import numpy as np
-from options import landmarker_model_path
+from options import landmarker_model_path, refresh_time
 
 def _is_empty(result: HandLandmarkerResult | None):
     return (not result) or \
@@ -30,7 +28,7 @@ class Result():
             assert(self._parent._result != None)
             pos = self._parent._result.hand_world_landmarks[0][key]
             return np.array((pos.x, pos.y, pos.z))
-        
+
         def __len__(self):
             if self._parent.is_empty():
                 return 0
@@ -67,14 +65,17 @@ class Result():
 
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
-        self.result: Result
-        self.result = Result()
+        self.result = np.zeros((21,3))
+        self.world_result = np.zeros((21,3))
+        self.timestamp = 0
 
-        self._prev_result: Result
-        self._prev_result = Result()
+        self.prev_result = np.zeros((21,3))
+        self.prev_world_result = np.zeros((21,3))
+        self.prev_timestamp = 0
 
-        self.landmarker = self.create_landmarker(mode)
         self.running_mode = mode
+        self.landmarker = self.create_landmarker(self.running_mode)
+
         self.detect = self._detect_async
         if mode != RunningMode.LIVE_STREAM:
             self.detect = self._detect_sync
@@ -95,13 +96,17 @@ class Landmarker():
         # de um único ponto
         self.global_motion = CArray((5,3))
 
-    def _detect_callback(self, result, *_):
-        self._prev_result.set(self.result._result)
-        self.result.set(result)
-
-        if self._prev_result.is_empty() or \
-            self.result.is_empty():
+    def _detect_callback(self, result: HandLandmarkerResult, timestamp_sec):
+        if _is_empty(result):
             return
+
+        self.prev_result = self.result
+        self.prev_world_result = self.world_result
+        self.prev_timestamp = self.timestamp
+
+        self.result = utils.hand_to_3d_array(result.hand_landmarks[0])
+        self.world_result = utils.hand_to_3d_array(result.hand_world_landmarks[0])
+        self.timestamp = timestamp_sec
 
         # == Cálculo de movimentação ==
         # O vetor de movimento deve ser convertido para uma escala onde a
@@ -112,19 +117,21 @@ class Landmarker():
         p1 = np.array(self.result[1])
         scale = utils.vec_len(p1-p0)
 
-        pc_last = (self._prev_result[0]+self._prev_result[5]+self._prev_result[17])/3
+        pc_last = (self.prev_result[0]+self.prev_result[5]+self.prev_result[17])/3
         pc = (self.result[0]+self.result[5]+self.result[17])/3
         centroid_motion = pc-pc_last
         self.global_motion.push(centroid_motion/scale)
 
         for i in range(len(self.local_index)):
             j = self.local_index[i]
-            self.local_motion[i].push((self.result[j]-self._prev_result[j])/scale)
+            self.local_motion[i].push((self.result[j]-self.prev_result[j])/scale)
 
     def create_landmarker(self, mode: RunningMode):
         callback = None
         if mode == RunningMode.LIVE_STREAM:
-            callback = self._detect_callback
+            def async_callback(result, _, timestamp_ms):
+                self._detect_callback(result, timestamp_ms/1000)
+            callback = async_callback
 
         options = HandLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path=landmarker_model_path),
@@ -137,7 +144,7 @@ class Landmarker():
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
             data=frame)
-        self._detect_callback(self.landmarker.detect(mp_image))
+        self._detect_callback(self.landmarker.detect(mp_image), time.time())
 
     def _detect_async(self, frame):
         mp_image = mp.Image(
