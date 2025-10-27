@@ -14,55 +14,6 @@ def _is_empty(result: HandLandmarkerResult | None):
         (not hasattr(result, "hand_landmarks")) or \
         len(result.hand_landmarks) == 0
 
-class Result():
-    class _world():
-        def __init__(self, res):
-            self._parent: Result
-            self._parent = res
-
-        def get_hand(self):
-            assert(self._parent._result != None)
-            return self._parent._result.hand_world_landmarks[0]
-
-        def __getitem__(self, key: int):
-            assert(self._parent._result != None)
-            pos = self._parent._result.hand_world_landmarks[0][key]
-            return np.array((pos.x, pos.y, pos.z))
-
-        def __len__(self):
-            if self._parent.is_empty():
-                return 0
-            assert(self._parent._result != None)
-            return len(self._parent._result.hand_landmarks[0])
-
-    def __init__(self, result = None):
-        self._result: HandLandmarkerResult | None
-        self._result = result
-        self.world = self._world(self)
-        self._empty = _is_empty(result)
-
-    def get_hand(self):
-        assert(self._result != None)
-        return self._result.hand_landmarks[0]
-
-    def set(self, new_result):
-        self._result = new_result
-        self._empty = _is_empty(new_result)
-
-    def __getitem__(self, key: int):
-        assert(self._result != None)
-        pos = self._result.hand_landmarks[0][key]
-        return np.array((pos.x, pos.y, pos.z))
-
-    def __len__(self):
-        if self.is_empty():
-            return 0
-        assert(self._result != None)
-        return len(self._result.hand_landmarks[0])
-
-    def is_empty(self):
-        return self._empty
-
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
         self.result = np.zeros((21,3))
