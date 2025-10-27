@@ -1,18 +1,29 @@
-from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
-from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
-from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
-from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 import mediapipe as mp
+from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTaskRunningMode as RunningMode
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
+from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
+import numpy as np
 import time
+
+from options import landmarker_model_path
 import utils
 from utils import CArray
-import numpy as np
-from options import landmarker_model_path, refresh_time
 
 def _is_empty(result: HandLandmarkerResult | None):
     return (not result) or \
         (not hasattr(result, "hand_landmarks")) or \
         len(result.hand_landmarks) == 0
+
+class Motion():
+    def __init__(self, landmarker, *sources):
+        self.landmarker = landmarker
+        self.sources = sources
+        self.values = CArray((5,3))
+
+    def update(self, result, prev_result, scale = 1):
+        # TODO: Implementar Motion.update
+        pass
 
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
@@ -46,6 +57,15 @@ class Landmarker():
         # Obs.: Talvez seja interessante utilizar o centróide [0,5,17] ao invés
         # de um único ponto
         self.global_motion = CArray((5,3))
+
+        self.motions = [
+            Motion(0, 5, 17), # Global
+            Motion(4),
+            Motion(8),
+            Motion(12),
+            Motion(16),
+            Motion(20)
+        ]
 
     def _detect_callback(self, result: HandLandmarkerResult, timestamp_sec):
         if _is_empty(result):
