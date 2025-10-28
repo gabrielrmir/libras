@@ -1,12 +1,11 @@
 import pandas as pd
-import utils
 
 class Dataset():
     def __init__(self, filename):
         self.filename = filename
 
     def save(self, label, hand):
-        l = utils.hand_to_2d_array(hand).flatten().tolist()
+        l = hand.flatten().tolist()
         if l == None:
             print('could not save hand to dataset')
             return
