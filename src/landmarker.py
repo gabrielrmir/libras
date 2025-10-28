@@ -16,14 +16,19 @@ def _is_empty(result: HandLandmarkerResult | None):
         len(result.hand_landmarks) == 0
 
 class Motion():
-    def __init__(self, landmarker, *sources):
-        self.landmarker = landmarker
-        self.sources = sources
+    def __init__(self, *sources):
+        self.sources = np.array(sources)
         self.values = CArray((5,3))
 
-    def update(self, result, prev_result, scale = 1):
-        # TODO: Implementar Motion.update
-        pass
+    def update(self, result, prev_result, scale = 1.0):
+        pos = result[self.sources].sum(axis=0)/len(self.sources)
+        pos_prev = prev_result[self.sources].sum(axis=0)/len(self.sources)
+        motion = (pos-pos_prev)/scale
+        self.values.push(motion)
+
+    # Vetor não normalizado
+    def get_motion(self):
+        return self.values.avg()
 
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
@@ -42,24 +47,11 @@ class Landmarker():
         if mode != RunningMode.LIVE_STREAM:
             self.detect = self._detect_sync
 
-        # Movimento relativo acumulado para a ponta dos dedos (4, 8, 12, 16, 20)
-        self.local_index = (4, 8, 12, 16, 20)
-        self.local_motion = [
-            CArray((5,3)),
-            CArray((5,3)),
-            CArray((5,3)),
-            CArray((5,3)),
-            CArray((5,3))
-        ]
-
-        # == Movimento relativo da mão ==
-        # O movimento é calculado em relação ao ponto 0
-        # Obs.: Talvez seja interessante utilizar o centróide [0,5,17] ao invés
-        # de um único ponto
-        self.global_motion = CArray((5,3))
-
         self.motions = [
-            Motion(0, 5, 17), # Global
+            # Centróide da palma da mão
+            Motion(0, 5, 17),
+
+            # Ponta dos dedos
             Motion(4),
             Motion(8),
             Motion(12),
@@ -79,23 +71,15 @@ class Landmarker():
         self.world_result = utils.hand_to_3d_array(result.hand_world_landmarks[0])
         self.timestamp = timestamp_sec
 
-        # == Cálculo de movimentação ==
-        # O vetor de movimento deve ser convertido para uma escala onde a
-        # distância entre os pontos 0 e 1 deve ser sempre igual à 1. Isso ajuda
-        # a garantir uma movimentação independente da profundidade da mão.
+        # Cálculo de movimentação para cada conjunto de pontos listados em
+        # motion; É aplicada uma escala para reduzir os impactos da
+        # profundidade no movimento entre frames.
+        scale = utils.vec_len(self.result[1]-self.result[0])
+        for motion in self.motions:
+            motion.update(self.result, self.prev_result, scale)
 
-        p0 = np.array(self.result[0])
-        p1 = np.array(self.result[1])
-        scale = utils.vec_len(p1-p0)
-
-        pc_last = (self.prev_result[0]+self.prev_result[5]+self.prev_result[17])/3
-        pc = (self.result[0]+self.result[5]+self.result[17])/3
-        centroid_motion = pc-pc_last
-        self.global_motion.push(centroid_motion/scale)
-
-        for i in range(len(self.local_index)):
-            j = self.local_index[i]
-            self.local_motion[i].push((self.result[j]-self.prev_result[j])/scale)
+        # TODO: Talvez seja preciso levar em consideração o delta entre frames;
+        # Pode ser inserido como parâmetro no método motion.update.
 
     def create_landmarker(self, mode: RunningMode):
         callback = None

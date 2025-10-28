@@ -37,6 +37,8 @@ class ClassifierTask(Task):
 
         hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
+        for motion in self.landmarker.motions:
+            draw.motion_2d(frame, hand, motion)
 
         is_moving = False
 

@@ -24,7 +24,7 @@ def vec_len(np_arr):
 def vec_norm(np_arr):
     l = vec_len(np_arr)
     if l == 0:
-        np.zeros(np_arr.shape)
+        return np.zeros(np_arr.shape)
     return np_arr/l
 
 # Array circular de vetores
