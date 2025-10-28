@@ -6,6 +6,7 @@ from dataset import load_dataset
 import draw
 from options import dataset_path, classifier_algorithm, refresh_time
 from task import Task
+from history import History
 
 def _load_clf(option):
     match option:
@@ -30,9 +31,11 @@ class ClassifierTask(Task):
     def __init__(self):
         super().__init__('Classifier')
         self.classifier = Classifier(dataset_path)
+        self.history = History()
 
     def _process(self, frame):
-        if time.time()-self.landmarker.timestamp > refresh_time:
+        current_time = time.time()
+        if current_time-self.landmarker.timestamp > refresh_time:
             self.landmarker.detect(frame)
 
         hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
@@ -46,9 +49,15 @@ class ClassifierTask(Task):
         y = self.classifier.predict([hand])[0]
         label = str(y)
 
+        # TODO: Verificar se label persistiu por tempo suficiente antes de
+        # acrescentar ao histórico. Talvez na faixa e 0,5-1 segundo.
+        if label:
+            self.history.push_label(label, current_time)
+
         draw.texts(frame, [
             f'Label: {label}',
             f'Moving: {is_moving}',
+            f'{self.history}'
         ], (10,40))
 
 def main():
