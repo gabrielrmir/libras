@@ -39,8 +39,9 @@ class CaptureTask(Task):
             f'{'Frozen' if self.frozen else ''}'
         ], (10,40))
 
-def main():
+def main(label = 'a'):
     task = CaptureTask()
+    task.label = label
     while task.running:
         task.update()
 

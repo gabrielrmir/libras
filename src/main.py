@@ -35,8 +35,11 @@ def parse_flags(args):
                 _err_invalid()
 
 def _cmd_capture(args):
+    label = 'a'
+    if len(args):
+        label = args.pop(0)
     import capture
-    capture.main()
+    capture.main(label)
 
 def _cmd_classifier(args):
     if len(args):
