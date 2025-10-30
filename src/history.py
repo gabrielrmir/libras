@@ -53,8 +53,15 @@ class History():
         self.timeline.append(new_token)
         self.last_direction = new_token
 
+    def clear(self):
+        if len(self.timeline) == 0:
+            return
+        self.last_label = None
+        self.last_direction = None
+        self.timeline = []
+
     def __str__(self):
         s = ''
         for i in self.timeline:
-            s += f'{i.value},'
+            s += f'{i.value}'
         return s

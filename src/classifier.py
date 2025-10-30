@@ -4,7 +4,7 @@ import time
 
 from dataset import load_dataset
 import draw
-from options import dataset_path, classifier_algorithm, refresh_time
+import options
 from task import Task
 from history import History
 
@@ -21,7 +21,7 @@ def _load_clf(option):
 class Classifier():
     def __init__(self, dataset_path):
         X, y = load_dataset(dataset_path)
-        self.clf = _load_clf(classifier_algorithm)
+        self.clf = _load_clf(options.classifier_algorithm)
         self.clf.fit(X,y)
 
     def predict(self, X):
@@ -30,33 +30,36 @@ class Classifier():
 class ClassifierTask(Task):
     def __init__(self):
         super().__init__('Classifier')
-        self.classifier = Classifier(dataset_path)
+        self.classifier = Classifier(options.dataset_path)
         self.history = History()
+        self.last_result = 0.0
 
     def _process(self, frame):
         current_time = time.time()
-        if current_time-self.landmarker.timestamp > refresh_time:
+        landmarker_delta = current_time-self.landmarker.timestamp
+        if landmarker_delta > options.refresh_time:
             self.landmarker.detect(frame)
+        if landmarker_delta > options.reset_timeout:
+            self.history.clear()
 
         hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
         for motion in self.landmarker.motions:
             draw.motion_2d(frame, hand, motion)
 
-        is_moving = False
+        if self.landmarker.timestamp > self.last_result:
+            self.last_result = self.landmarker.timestamp
+            hand = self.landmarker.world_result[:,:2].flatten()
+            y = self.classifier.predict([hand])[0]
+            label = str(y)
 
-        hand = self.landmarker.world_result[:,:2].flatten()
-        y = self.classifier.predict([hand])[0]
-        label = str(y)
-
-        # TODO: Verificar se label persistiu por tempo suficiente antes de
-        # acrescentar ao histórico. Talvez na faixa e 0,5-1 segundo.
-        if label:
-            self.history.push_label(label, current_time)
+            # TODO: Verificar se label persistiu por tempo suficiente antes de
+            # acrescentar ao histórico. Talvez na faixa e 0,5-1 segundo.
+            if label:
+                self.history.push_label(label, current_time)
 
         draw.texts(frame, [
-            f'Label: {label}',
-            f'Moving: {is_moving}',
+            # f'Label: {label}',
             f'{self.history}'
         ], (10,40))
 
