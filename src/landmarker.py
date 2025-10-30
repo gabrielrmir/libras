@@ -5,6 +5,7 @@ from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
 import numpy as np
 import time
+import cv2
 
 from options import landmarker_model_path
 import utils
@@ -104,7 +105,7 @@ class Landmarker():
     def _detect_async(self, frame):
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
-            data=frame)
+            data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         self.landmarker.detect_async(
             mp_image,
             int(time.time()*1000))
