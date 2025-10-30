@@ -47,21 +47,17 @@ class ClassifierTask(Task):
         for motion in self.landmarker.motions:
             draw.motion_2d(frame, hand, motion)
 
+        label = ''
         if self.landmarker.timestamp > self.last_result:
             self.last_result = self.landmarker.timestamp
             hand = self.landmarker.world_result[:,:2].flatten()
             y = self.classifier.predict([hand])[0]
             label = str(y)
 
-            # TODO: Verificar se label persistiu por tempo suficiente antes de
-            # acrescentar ao histórico. Talvez na faixa e 0,5-1 segundo.
             if label:
                 self.history.push_label(label, current_time)
 
-        draw.texts(frame, [
-            # f'Label: {label}',
-            f'{self.history}'
-        ], (10,40))
+        draw.text_box(frame, str(self.history), (0,38))
 
 def main():
     task = ClassifierTask()

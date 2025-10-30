@@ -6,6 +6,8 @@ LINES = ((0,1),(1,2),(2,3),(3,4),(0,5),(5,6),(6,7),
     (7,8),(5,9),(9,10),(10,11),(11,12),(9,13),(13,14),
     (14,15),(15,16),(13,17),(0,17),(17,18),(18,19),(19,20))
 
+FONT = cv2.FONT_HERSHEY_PLAIN
+
 COLOR_RED = (0, 0, 255)
 COLOR_GREEN = (0, 255, 0)
 COLOR_BLUE = (255, 0, 0)
@@ -37,6 +39,11 @@ def motion_2d(frame, hand_2d, motion, scale = 100):
     pt1 = np.mean(hand_2d[motion.sources], axis=0).astype(int)
     offset = (motion.get_motion()[:2]*scale).astype(int)
     arrow(frame, pt1, pt1+offset, COLOR_BLUE, COLOR_RED, 4)
+
+def text_box(frame, text, pos):
+    (size, baseline) = cv2.getTextSize(text, FONT, fontScale=3, thickness=1)
+    cv2.rectangle(frame, (pos[0], pos[1]+baseline), (pos[0]+size[0],pos[1]-size[1]-baseline), (0,0,0), -1)
+    cv2.putText(frame, text, pos, FONT, 3, (255,255,255), 2, cv2.LINE_AA | cv2.LINE_8, False)
 
 def text(frame, text, pos):
     cv2.putText(frame, text, pos, 0, 1, COLOR_TEXT, 2)
