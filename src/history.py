@@ -1,4 +1,5 @@
 import enum
+import options
 
 # Bitflag com 8 direções cardeais e colaterais. Usado para representar a
 # direção dos movimentos. Um movimento pode ser classificado como mais de uma
@@ -31,6 +32,12 @@ class Token():
             return
         self.time_end = timestamp_sec
 
+    def get_duration(self):
+        return self.time_end-self.time_start
+
+    def is_valid(self):
+        return self.get_duration() >= options.minimum_duration
+
 class History():
     def __init__(self):
         self.last_label = None
@@ -41,6 +48,14 @@ class History():
         if self.last_label and self.last_label.value == label:
             self.last_label.extend_time(timestamp_sec)
             return
+
+        if self.last_label and not self.last_label.is_valid():
+            self.last_label = None
+            # TODO: quando direção for implementada será preciso buscar pelo
+            # último label da linha do tempo, pois nem sempre estará no topo da
+            # lista.
+            self.timeline.pop()
+
         new_token = Token(label, timestamp_sec, TokenType.LABEL)
         self.timeline.append(new_token)
         self.last_label = new_token

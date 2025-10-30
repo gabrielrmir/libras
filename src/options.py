@@ -25,3 +25,7 @@ refresh_time = 0.01
 # Tempo necessário para limpar o histórico de gestos. É considerado o tempo em
 # que nenhuma mão está presente na tela.
 reset_timeout = 3.0
+
+# Tempo mínimo que um gesto precisa estar sendo executado para ser considerado
+# válido. Ajuda a evitar detecção de gestos não desejados.
+minimum_duration = 0.5
