@@ -61,7 +61,7 @@ class ClassifierTask(Task):
             y = self.classifier.predict([hand])[0]
             label = str(y)
 
-            if label:
+            if label and not is_moving:
                 self.history.push_label(label, current_time)
 
         direction_text = ''
