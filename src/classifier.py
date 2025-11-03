@@ -1,6 +1,7 @@
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 import time
+import cv2
 
 import utils
 from dataset import load_dataset
@@ -67,6 +68,8 @@ class ClassifierTask(Task):
         direction_text = ''
         if self.history.last_direction:
             direction_text = self.history.last_direction.value
+
+        cv2.flip(frame, 1, frame)
 
         draw.text_box(frame, str(self.history), (0,38))
         draw.texts(frame, [

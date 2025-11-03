@@ -1,10 +1,13 @@
 import numpy as np
 import math
 
-def hand_to_2d_array(hand):
+def hand_to_2d_flipped_array(hand, flip = 0):
+    x_scale = 1.0
+    if flip:
+        x_scale = -1.0
     arr = np.zeros((len(hand),2))
     for i in range(len(hand)):
-        arr[i][0] = hand[i].x
+        arr[i][0] = hand[i].x*x_scale
         arr[i][1] = hand[i].y
     return arr
 

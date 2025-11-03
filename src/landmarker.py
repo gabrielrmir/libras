@@ -7,7 +7,7 @@ import numpy as np
 import time
 import cv2
 
-from options import landmarker_model_path
+import options
 import utils
 from utils import CArray
 
@@ -60,16 +60,22 @@ class Landmarker():
             Motion(20)
         ]
 
+        self.handedness = 'Right'
+
     def _detect_callback(self, result: HandLandmarkerResult, timestamp_sec):
         if _is_empty(result):
             return
+
+        handedness = result.handedness[0][0]
+        self.handedness = handedness.display_name
+        flip = handedness.index
 
         self.prev_result = self.result
         self.prev_world_result = self.world_result
         self.prev_timestamp = self.timestamp
 
         self.result = utils.hand_to_3d_array(result.hand_landmarks[0])
-        self.world_result = utils.hand_to_3d_array(result.hand_world_landmarks[0])
+        self.world_result = utils.hand_to_2d_flipped_array(result.hand_world_landmarks[0], flip)
         self.timestamp = timestamp_sec
 
         # Cálculo de movimentação para cada conjunto de pontos listados em
@@ -89,12 +95,12 @@ class Landmarker():
                 self._detect_callback(result, timestamp_ms/1000)
             callback = async_callback
 
-        options = HandLandmarkerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path=landmarker_model_path),
+        lm_options = HandLandmarkerOptions(
+            base_options=mp.tasks.BaseOptions(model_asset_path=options.landmarker_model_path),
             running_mode=mode,
             result_callback=callback)
 
-        return HandLandmarker.create_from_options(options)
+        return HandLandmarker.create_from_options(lm_options)
 
     def _detect_sync(self, frame):
         mp_image = mp.Image(
@@ -112,5 +118,3 @@ class Landmarker():
 
     def close(self):
         self.landmarker.close()
-
-
