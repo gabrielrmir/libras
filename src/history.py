@@ -84,7 +84,7 @@ class History():
 
     def push_motion(self, timestamp_sec: float, motion: tuple[float, float]):
         direction = 0
-        if utils.vec_len(motion) > .1:
+        if utils.vec_len(motion) > .2:
             angle = math.atan2(motion[1], motion[0])-math.pi/8
             octant = int(round(8*angle/(2*math.pi)+8)%8)
             direction = HALF_WIND_MAP[octant]
@@ -114,9 +114,11 @@ class History():
             self.timeline.append(state)
             self.update_word()
 
-    def consume(self, i: int, label: str) -> int:
+    def consume(self, i: int, label: str, direction: int = -1, optional: bool = False) -> int:
         size = len(self.timeline)
-        while i < size and self.timeline[i].label == label:
+        while i < size and self.timeline[i].label == label and \
+            (direction == -1 or self.timeline[i].direction & direction or \
+             self.timeline[i].direction == direction or (self.timeline[i].direction == 0 and optional)):
             i += 1
         return i
 
@@ -126,20 +128,48 @@ class History():
         return None
 
     def update_word(self):
-        # print(self)
         i = 0
         size = len(self.timeline)
         word = ''
         while i < size:
             s = self.timeline[i]
-            if s.label == 'i':
-                i = self.consume(i, 'i')
+            if s.label == 'i' and s.direction == 0:
+                i = self.consume(i, 'i', 0)
                 s = self.at(i)
                 if s and s.label == 'j':
-                    self.consume(i, 'j')
+                    i = self.consume(i, 'j')
                     word += 'j'
                 else:
                     word += 'i'
+                continue
+            elif s.label == 'k' and s.direction == 0:
+                i = self.consume(i, 'k', 0)
+                s = self.at(i)
+                if s and s.label == 'h':
+                    i = self.consume(i, 'h')
+                    word += 'h'
+                continue
+            elif s.label == 'k' and s.direction & DIR_UP:
+                i = self.consume(i, 'k', DIR_UP)
+                word += 'k'
+                continue
+            elif s.label == 'x' and s.direction & DIR_LEFT:
+                i = self.consume(i, 'x', DIR_LEFT)
+                word += 'x'
+                continue
+            elif s.label == 'z' and s.direction & DIR_LEFT:
+                i = self.consume(i, 'z', DIR_LEFT, True)
+                s = self.at(i)
+
+                if not s or s.label != 'z' or not s.direction & DIR_DOWN_RIGHT:
+                    continue
+                i = self.consume(i, 'z', DIR_DOWN_RIGHT, True)
+                s = self.at(i)
+
+                if not s or s.label != 'z' or not s.direction & DIR_LEFT:
+                    continue
+                i = self.consume(i, 'z', DIR_DOWN_RIGHT, True)
+                word += 'z'
                 continue
             elif s.label in SIMPLE_LETTERS and s.direction == 0:
                 word += s.label
