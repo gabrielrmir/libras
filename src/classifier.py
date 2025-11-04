@@ -3,7 +3,6 @@ from sklearn.ensemble import RandomForestClassifier
 import time
 import cv2
 
-import utils
 from dataset import load_dataset
 import draw
 import options
@@ -47,34 +46,20 @@ class ClassifierTask(Task):
         hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
 
-        is_moving = False
-        for motion in self.landmarker.motions:
-            if utils.vec_len(motion.get_motion()) > .1:
-                is_moving = True
-                break
-        if is_moving:
-            x,y,_ = self.landmarker.motions[0].get_motion()
-            self.history.push_motion((x,y), current_time)
-
         if self.landmarker.timestamp > self.last_result:
             self.last_result = self.landmarker.timestamp
+
             hand = self.landmarker.world_result[:,:2].flatten()
             y = self.classifier.predict([hand])[0]
             label = str(y)
+            if label:
+                self.history.push_label(current_time, label)
 
-            if label and not is_moving:
-                self.history.push_label(label, current_time)
-
-        direction_text = ''
-        if self.history.last_direction:
-            direction_text = self.history.last_direction.value
+            self.history.push_motion(current_time, self.landmarker.motions[0].get_motion())
 
         cv2.flip(frame, 1, frame)
 
-        draw.text_box(frame, str(self.history), (0,38))
-        draw.texts(frame, [
-            f'{direction_text}'
-        ], (0,70))
+        draw.text_box(frame, self.history.word, (0,38))
 
 def main():
     task = ClassifierTask()

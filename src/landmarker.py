@@ -34,11 +34,11 @@ class Motion():
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
         self.result = np.zeros((21,3))
-        self.world_result = np.zeros((21,3))
+        self.world_result = np.zeros((21,2))
         self.timestamp = 0
 
         self.prev_result = np.zeros((21,3))
-        self.prev_world_result = np.zeros((21,3))
+        self.prev_world_result = np.zeros((21,2))
         self.prev_timestamp = 0
 
         self.running_mode = mode

@@ -28,7 +28,6 @@ def parse_flags(args):
                 try:
                     refresh_time = float(args.pop(0))
                     options.refresh_time = refresh_time
-                    print(options.refresh_time)
                 except:
                     _err_invalid()
             case _:

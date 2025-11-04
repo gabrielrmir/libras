@@ -1,6 +1,7 @@
 import enum
 import options
 import math
+import utils
 
 # Bitflag com 8 direções cardeais e colaterais. Usado para representar a
 # direção dos movimentos. Um movimento pode ser classificado como mais de uma
@@ -26,75 +27,135 @@ HALF_WIND_MAP = {
     7: DIR_UP_RIGHT | DIR_RIGHT,
 }
 
-class TokenType(enum.Enum):
-    LABEL = 0
-    DIRECTION = 1
+DIR_DISPLAY_NAME = {
+    DIR_RIGHT: 'r',
+    DIR_DOWN_RIGHT: 'dr',
+    DIR_DOWN: 'd',
+    DIR_DOWN_LEFT: 'dl',
+    DIR_LEFT: 'l',
+    DIR_UP_LEFT: 'ul',
+    DIR_UP: 'u',
+    DIR_UP_RIGHT: 'ur'
+}
 
-class Token():
-    def __init__(self, value, timestamp_sec: float, type: TokenType):
-        self.type = type
-        self.value = value
+SIMPLE_LETTERS = 'abcdefglmnopqrstuvwy'
+
+def dirs_to_str(dirs: int):
+    s = ''
+    i = 1
+    while i <= dirs:
+        if i & dirs:
+            s += f'{DIR_DISPLAY_NAME[i]},'
+        i <<= 1
+    return s
+
+class State():
+    def __init__(self, timestamp_sec: float, label: str, direction: int = 0):
+        self.label = label
+        self.direction = direction
         self.time_start = timestamp_sec
         self.time_end = timestamp_sec
 
     def extend_time(self, timestamp_sec: float):
-        if timestamp_sec < self.time_start:
-            return
-        self.time_end = timestamp_sec
+        if timestamp_sec > self.time_start:
+            self.time_end = timestamp_sec
 
-    def get_duration(self):
-        return self.time_end-self.time_start
+    def __str__(self):
+        return f'<{self.label}:{dirs_to_str(self.direction)}>'
 
-    def is_long_enough(self):
-        return self.get_duration() >= options.minimum_duration
+    def __eq__(self, state):
+        return self.label == state.label and \
+            self.direction == state.direction
 
 class History():
     def __init__(self):
-        self.last_label = None
-        self.last_direction = None
-        self.timeline: list[Token]
+        self.last_label: str
+        self.last_label = ''
+        self.last_label_start = 0.0
+        self.last_label_end = 0.0
+
+        self.last_direction: int
+        self.last_direction = 0
+
+        self.timeline: list[State]
         self.timeline = []
 
-    def push_label(self, label: str, timestamp_sec: float):
-        if self.last_label and self.last_label.value == label:
-            self.last_label.extend_time(timestamp_sec)
+        self.word = ''
+
+    def push_motion(self, timestamp_sec: float, motion: tuple[float, float]):
+        direction = 0
+        if utils.vec_len(motion) > .1:
+            angle = math.atan2(motion[1], motion[0])-math.pi/8
+            octant = int(round(8*angle/(2*math.pi)+8)%8)
+            direction = HALF_WIND_MAP[octant]
+        if direction != self.last_direction:
+            self.last_direction = direction
+            self.push_state(timestamp_sec)
+
+    def push_label(self, timestamp_sec: float, label: str):
+        if self.last_label != label:
+            self.last_label = label
+            self.last_label_start = timestamp_sec
+            self.last_label_end = timestamp_sec
+            return
+        if timestamp_sec > self.last_label_end:
+            self.last_label_end = timestamp_sec
+        self.push_state(timestamp_sec)
+
+    def push_state(self, timestamp_sec: float):
+        if self.last_label_end - self.last_label_start < options.minimum_duration:
             return
 
-        if self.last_label and not self.last_label.is_long_enough():
-            self.last_label = None
-            for i in range(len(self.timeline)-1, -1, -1):
-                if self.timeline[i].type == TokenType.LABEL:
-                    self.timeline.pop(i)
-                    break
+        if self.timeline and self.timeline[-1].label == self.last_label and \
+            self.timeline[-1].direction == self.last_direction:
+            self.timeline[-1].extend_time(timestamp_sec)
+        else:
+            state = State(timestamp_sec, self.last_label, self.last_direction)
+            self.timeline.append(state)
+            self.update_word()
 
-        new_token = Token(label, timestamp_sec, TokenType.LABEL)
-        self.timeline.append(new_token)
-        self.last_label = new_token
+    def consume(self, i: int, label: str) -> int:
+        size = len(self.timeline)
+        while i < size and self.timeline[i].label == label:
+            i += 1
+        return i
 
-    def push_motion(self, motion: tuple[float,float], timestamp_sec: float):
-        x,y = motion
-        angle = math.atan2(y,x)-math.pi/8
-        octant = int(round(8*angle/(2*math.pi)+8)%8)
-        direction = HALF_WIND_MAP[octant]
+    def at(self, i: int) -> State | None:
+        if i < len(self.timeline):
+            return self.timeline[i]
+        return None
 
-        if self.last_direction and self.last_direction.value == direction:
-            self.last_direction.extend_time(timestamp_sec)
-            return
-
-        new_token = Token(direction, timestamp_sec, TokenType.DIRECTION)
-        self.timeline.append(new_token)
-        self.last_direction = new_token
+    def update_word(self):
+        # print(self)
+        i = 0
+        size = len(self.timeline)
+        word = ''
+        while i < size:
+            s = self.timeline[i]
+            if s.label == 'i':
+                i = self.consume(i, 'i')
+                s = self.at(i)
+                if s and s.label == 'j':
+                    self.consume(i, 'j')
+                    word += 'j'
+                else:
+                    word += 'i'
+                continue
+            elif s.label in SIMPLE_LETTERS and s.direction == 0:
+                word += s.label
+            i += 1
+        self.word = word
 
     def clear(self):
-        if len(self.timeline) == 0:
-            return
-        self.last_label = None
-        self.last_direction = None
         self.timeline = []
+        self.last_direction = 0
+        self.last_label = ''
+        self.last_label_start = 0.0
+        self.last_label_end = 0.0
+        self.word = ''
 
     def __str__(self):
-        s = ''
-        for i in self.timeline:
-            if i.type == TokenType.LABEL:
-                s += f'{i.value}'
-        return s
+        states = []
+        for state in self.timeline:
+            states.append(str(state))
+        return ','.join(states)
