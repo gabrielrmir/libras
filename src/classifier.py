@@ -12,7 +12,7 @@ from history import History
 def _load_clf(option):
     match option:
         case 'knn':
-            return KNeighborsClassifier(weights='distance', n_neighbors=11)
+            return KNeighborsClassifier(weights='distance', n_neighbors=options.knn_n_neighbors)
         case 'randomforest':
             return RandomForestClassifier()
         case _:
@@ -46,6 +46,7 @@ class ClassifierTask(Task):
         hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
         draw.hand_box(frame, hand)
 
+        label = ''
         if self.landmarker.timestamp > self.last_result:
             self.last_result = self.landmarker.timestamp
 
@@ -60,6 +61,9 @@ class ClassifierTask(Task):
         cv2.flip(frame, 1, frame)
 
         draw.text_box(frame, self.history.word, (0,38))
+        draw.texts(frame, [
+            label
+        ], (0, 70))
 
 def main():
     task = ClassifierTask()

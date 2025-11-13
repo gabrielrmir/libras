@@ -13,6 +13,9 @@ dataset_path = "./data/capture.csv"
 # knn, randomforest
 classifier_algorithm = "knn"
 
+# Número de vizinhos do algoritmo KNN
+knn_n_neighbors = 5
+
 # Modo de execução da ferramenta. Modos disponíveis:
 # RunningMode.LIVE_STREAM (padrão)
 # RunningMode.VIDEO
