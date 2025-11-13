@@ -111,7 +111,8 @@ def _cmd_crop(args):
 # As imagens seguem a mesma estrutura informada no comando de acurácia, usando
 # o diretório 'train' no lugar de 'test'.
 def _cmd_process():
-    pass
+    import process
+    process.main()
 
 def main():
     args = sys.argv[1:]

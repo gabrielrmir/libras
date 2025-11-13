@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from pathlib import Path
 
 def hand_to_2d_flipped_array(hand, flip = 0):
     x_scale = 1.0
@@ -44,3 +45,15 @@ class CArray():
 
     def avg(self):
         return self._arr.sum(axis=0)/self._size
+
+def is_image(path: Path):
+    suffix = path.suffix
+    if suffix == '.png': return True
+    if suffix == '.jpg': return True
+    return False
+
+def list_dirs(path: Path):
+    return [x for x in path.iterdir() if x.is_dir()]
+
+def list_images(path: Path):
+    return [x for x in path.iterdir() if is_image(x)]
