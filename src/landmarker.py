@@ -66,16 +66,19 @@ class Landmarker():
         if _is_empty(result):
             return
 
-        handedness = result.handedness[0][0]
-        self.handedness = handedness.display_name
-        flip = handedness.index
+        # handedness = result.handedness[0][0]
+        # self.handedness = handedness.display_name
+        # flip = handedness.index
 
         self.prev_result = self.result
         self.prev_world_result = self.world_result
         self.prev_timestamp = self.timestamp
 
+        # if handedness.index:
+        #     print(f'{time.time()} flip')
+
         self.result = utils.hand_to_3d_array(result.hand_landmarks[0])
-        self.world_result = utils.hand_to_2d_flipped_array(result.hand_world_landmarks[0], flip)
+        self.world_result = utils.hand_to_2d_flipped_array(result.hand_world_landmarks[0], 0)
         self.timestamp = timestamp_sec
 
         # Cálculo de movimentação para cada conjunto de pontos listados em
@@ -105,7 +108,7 @@ class Landmarker():
     def _detect_sync(self, frame):
         mp_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
-            data=frame)
+            data=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         self._detect_callback(self.landmarker.detect(mp_image), time.time())
 
     def _detect_async(self, frame):

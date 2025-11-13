@@ -79,6 +79,10 @@ def _cmd_stats():
     import statistics
     statistics.main()
 
+def _cmd_accuracy():
+    import accuracy
+    accuracy.main()
+
 def main():
     args = sys.argv[1:]
 
@@ -97,6 +101,8 @@ def main():
             _cmd_help()
         case 'stats':
             _cmd_stats()
+        case 'accuracy':
+            _cmd_accuracy()
         case _:
             _err_invalid()
 
