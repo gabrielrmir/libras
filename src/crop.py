@@ -24,6 +24,7 @@ def main(label = 'a'):
     tl = np.array(cam.center-size/2)
     pt1 = tl.astype(int).tolist()
     pt2 = (tl+size).astype(int).tolist()
+    count = 0
 
     while True:
         ret, frame = cap.read()
@@ -34,6 +35,8 @@ def main(label = 'a'):
         if key == ord('c'):
             im = crop(frame, pt1, pt2)
             save(label, im)
+            count += 1
+            print(f'contador: {count}')
         if key == ord('q'):
             break
 
