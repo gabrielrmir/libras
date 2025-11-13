@@ -11,12 +11,15 @@ class CaptureTask(Task):
         self.label = 'a'
         self.dataset = Dataset(dataset_path)
         self.frozen = False
+        self.counter = 0
 
     def _input(self, key):
         if key == ord('l'):
             self.label = input('label>')
         elif key == ord('c'):
             self.dataset.save(self.label, self.landmarker.world_result[:,:2])
+            self.counter += 1
+            print(f'Contador: {self.counter}')
         elif key == ord('f'):
             self.frozen = not self.frozen
 
