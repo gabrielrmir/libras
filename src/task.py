@@ -30,6 +30,8 @@ class Task():
             return
         self._input(key)
         self._process(frame)
+        if key == ord('k'):
+            cv2.imshow('captura', frame)
         cv2.imshow(self.title, frame)
 
     def _input(self, key):
