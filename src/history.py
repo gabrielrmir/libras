@@ -127,53 +127,84 @@ class History():
             return self.timeline[i]
         return None
 
+    def sequence(self, i: int, l1: str, l2: str, push_l1: bool = True):
+        s = self.at(i)
+        if not s:
+            return i, ''
+
+        if not s.label == l1 or s.direction != 0:
+            return i, ''
+
+        i = self.consume(i, l1, 0)
+        s = self.at(i)
+        if s and s.label == l2:
+            i = self.consume(i, l2)
+            return i, l2
+
+        if push_l1:
+            return i, l1
+
+        return i, ''
+
+    def directions(self, i: int, label: str, directions: list[int]):
+        i = self.skip(i, label)
+        s = self.at(i)
+        for dir in directions:
+            i = self.skip(i, label)
+            s = self.at(i)
+            if not s or s.label != label or not s.direction & dir:
+                return i, ''
+            i = self.consume(i, label, dir)
+        return i, label
+
+    def skip(self, i: int, label: str):
+        s = self.at(i)
+        while s and s.label == label and s.direction == 0:
+            i += 1
+            s = self.at(i)
+        return i
+
     def update_word(self):
+        # print(chr(27) + "[2J")
+        # for s in self.timeline:
+        #     print(s, end=' ')
+        # print()
+
         i = 0
         size = len(self.timeline)
         word = ''
         while i < size:
             s = self.timeline[i]
-            if s.label == 'i' and s.direction == 0:
-                i = self.consume(i, 'i', 0)
-                s = self.at(i)
-                if s and s.label == 'j':
-                    i = self.consume(i, 'j')
-                    word += 'j'
-                else:
-                    word += 'i'
-                continue
-            elif s.label == 'k' and s.direction == 0:
-                i = self.consume(i, 'k', 0)
-                s = self.at(i)
-                if s and s.label == 'h':
-                    i = self.consume(i, 'h')
-                    word += 'h'
-                continue
-            elif s.label == 'k' and s.direction & DIR_UP:
-                i = self.consume(i, 'k', DIR_UP)
-                word += 'k'
-                continue
-            elif s.label == 'x' and s.direction & DIR_LEFT:
-                i = self.consume(i, 'x', DIR_LEFT)
-                word += 'x'
-                continue
-            elif s.label == 'z' and s.direction & DIR_LEFT:
-                i = self.consume(i, 'z', DIR_LEFT, True)
-                s = self.at(i)
 
-                if not s or s.label != 'z' or not s.direction & DIR_DOWN_RIGHT:
-                    continue
-                i = self.consume(i, 'z', DIR_DOWN_RIGHT, True)
-                s = self.at(i)
-
-                if not s or s.label != 'z' or not s.direction & DIR_LEFT:
-                    continue
-                i = self.consume(i, 'z', DIR_DOWN_RIGHT, True)
-                word += 'z'
+            i, l = self.sequence(i, 'i', 'j')
+            if l:
+                word += l
                 continue
-            elif s.label in SIMPLE_LETTERS and s.direction == 0:
+
+            i, l = self.sequence(i, 'p', 'k')
+            if l:
+                word += l
+                continue
+
+            i, l = self.sequence(i, 'k', 'h', False)
+            if l:
+                word += l
+                continue
+
+            i, l = self.directions(i, 'x', [DIR_LEFT])
+            if l:
+                word += l
+                continue
+
+            i, l = self.directions(i, 'z', [DIR_LEFT, DIR_DOWN_RIGHT, DIR_LEFT])
+            if l:
+                word += l
+                continue
+
+            if s.label in SIMPLE_LETTERS and s.direction == 0:
                 word += s.label
             i += 1
+
         self.word = word
 
     def clear(self):
