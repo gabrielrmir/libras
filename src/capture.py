@@ -1,58 +1,52 @@
-import cv2
-import utils
-import os
+import time
 
-from landmarker import Landmarker
 from dataset import Dataset
+import draw
+from options import dataset_path, refresh_time
+from task import Task
 
-CAMERA_INDEX = 0
-if "CAMERA_INDEX" in os.environ:
-    try:
-        CAMERA_INDEX = int(os.environ["CAMERA_INDEX"])
-    except:
-        print("[ERROR] Invalid camera index")
-        exit(1)
+class CaptureTask(Task):
+    def __init__(self):
+        super().__init__('Libras')
+        self.label = 'a'
+        self.dataset = Dataset(dataset_path)
+        self.frozen = False
+        self.counter = 0
 
-cap = cv2.VideoCapture(CAMERA_INDEX)
-if not cap.isOpened():
-    print("Cannot open camera")
-    exit(1)
+    def _input(self, key):
+        if key == ord('l'):
+            self.label = input('label>')
+        elif key == ord('c'):
+            self.dataset.save(self.label, self.landmarker.world_result[:,:2])
+            self.counter += 1
+            print(f'Contador: {self.counter}')
+        elif key == ord('f'):
+            self.frozen = not self.frozen
 
-landmarker = Landmarker()
-dataset = Dataset("./data/dataset.csv")
+            # p = Path(capture_dir, label)
+            # p.mkdir(mode=0o755, parents=True, exist_ok=True)
+            # filename = uuid.uuid4().hex + '.jpg'
+            # cv2.imwrite(str(p / filename), cropped_im)
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        print("Unable to receive frame. Exiting...")
-        break
+    def _process(self, frame):
+        if not self.frozen and time.time()-self.landmarker.timestamp > refresh_time:
+            self.landmarker.detect(frame)
 
-    landmarker.detect_async(frame)
+        hand = (self.landmarker.result[:,:2]*self.cam.size).astype(int)
+        draw.hand_box(frame, hand)
+        draw.hand_lines(frame, hand)
+        draw.hand_dots(frame, hand)
 
-    key = cv2.waitKey(1)
-    if key == 27: # esc
-        break
+        draw.texts(frame, [
+            f'Label: {self.label}',
+            f'{'Frozen' if self.frozen else ''}'
+        ], (10,40))
 
-    if hasattr(landmarker.result, "hand_landmarks") and \
-        len(landmarker.result.hand_world_landmarks):
+def main(label = 'a'):
+    task = CaptureTask()
+    task.label = label
+    while task.running:
+        task.update()
 
-        w,h = 640,360
-        hands = landmarker.result.hand_landmarks
-        for hand in hands:
-            utils.draw_hand(frame,hand,(w,h))
-
-        hands = landmarker.result.hand_world_landmarks
-        for hand in hands:
-            utils.draw_hand_lines(frame,hand,(w,h),(w//8,h//8))
-
-        if key >= 97 and key <= 122:
-            dataset.save(chr(key),hands[0])
-
-
-    cv2.imshow('Libras', frame)
-
-
-dataset.close()
-landmarker.close()
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == '__main__':
+    main()

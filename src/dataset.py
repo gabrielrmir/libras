@@ -1,17 +1,29 @@
-import csv
+import pandas as pd
 
 class Dataset():
     def __init__(self, filename):
-        self._file = open(filename, 'a')
-        self._csvwriter = csv.writer(self._file)
+        self.filename = filename
 
-    def save(self, symbol, hand):
-        data = [symbol]
-        for pos in hand:
-            data.append(pos.x)
-            data.append(pos.y)
-        self._csvwriter.writerow(data)
-        self._file.flush()
+    def save(self, label, hand):
+        l = hand.flatten().tolist()
+        if l == None:
+            print('could not save hand to dataset')
+            return
 
-    def close(self):
-        self._file.close()
+        l.insert(0, label)
+        pd.DataFrame([l]).to_csv(self.filename, mode='a', header=False, index=False)
+        print(f'Saved hand as label "{label}"')
+
+    def save_multiple(self, label, flat_hands):
+        n = len(flat_hands)
+        for hand in flat_hands:
+            hand.insert(0, label)
+        pd.DataFrame(flat_hands).to_csv(self.filename, mode='a', header=False, index=False)
+        print(f'Saved {n} hands as label "{label}"')
+
+def load_dataset(filename):
+    df = pd.read_csv(filename, header=None)
+    X = df.iloc[:,1:].to_numpy()
+    # X = X.reshape((len(X), len(X[0])//2, 2))
+    y = df.iloc[:,0].to_numpy()
+    return (X, y)
