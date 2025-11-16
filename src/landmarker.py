@@ -3,6 +3,7 @@ from mediapipe.tasks.python.vision.core.vision_task_running_mode import VisionTa
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarker
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerOptions
 from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarkerResult
+from mediapipe.tasks.python.core.base_options import BaseOptions
 import numpy as np
 import time
 import cv2
@@ -99,8 +100,13 @@ class Landmarker():
             callback = async_callback
 
         lm_options = HandLandmarkerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path=options.landmarker_model_path),
+            base_options=mp.tasks.BaseOptions(
+                model_asset_path=options.landmarker_model_path,
+                delegate=BaseOptions.Delegate.GPU),
             running_mode=mode,
+            min_hand_detection_confidence=0.7,
+            min_hand_presence_confidence=0.7,
+            min_tracking_confidence=0.7,
             result_callback=callback)
 
         return HandLandmarker.create_from_options(lm_options)
