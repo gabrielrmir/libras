@@ -17,14 +17,16 @@ def main():
     for train_dir in train_dirs:
         label = train_dir.parts[-1]
         image_paths = utils.list_images(train_dir)
-        image_paths = image_paths[:100]
 
         hands = [conv.filepath_to_coords(image_path, lm) for image_path in image_paths]
-        hands = [c for c in hands if c is not None]
+        hands = [c.tolist() for c in hands if c is not None]
+
+        if len(hands) == 0:
+            continue
+        assert(len(hands[0]) == 42)
 
         # dataset_path.parent.mkdir(parents=True, exist_ok=True)
-        for hand in hands:
-            dt.save(label, hand)
+        dt.save_multiple(label, hands)
 
 if __name__ == '__main__':
     main()

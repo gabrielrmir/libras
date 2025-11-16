@@ -12,7 +12,14 @@ class Dataset():
 
         l.insert(0, label)
         pd.DataFrame([l]).to_csv(self.filename, mode='a', header=False, index=False)
-        print('saved hand as label: ' + label)
+        print(f'Saved hand as label "{label}"')
+
+    def save_multiple(self, label, flat_hands):
+        n = len(flat_hands)
+        for hand in flat_hands:
+            hand.insert(0, label)
+        pd.DataFrame(flat_hands).to_csv(self.filename, mode='a', header=False, index=False)
+        print(f'Saved {n} hands as label "{label}"')
 
 def load_dataset(filename):
     df = pd.read_csv(filename, header=None)

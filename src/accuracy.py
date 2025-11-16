@@ -15,7 +15,6 @@ def main():
     for test_dir in test_dirs:
         label = test_dir.parts[-1]
         image_paths = utils.list_images(test_dir)
-        image_paths = image_paths[:100]
 
         coords = [conv.filepath_to_coords(image_path, lm) for image_path in image_paths]
         coords = [c for c in coords if c is not None]
