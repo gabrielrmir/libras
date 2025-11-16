@@ -84,7 +84,7 @@ class History():
 
     def push_motion(self, timestamp_sec: float, motion: tuple[float, float]):
         direction = 0
-        if utils.vec_len(motion) > .4:
+        if utils.vec_len(motion) > .2:
             angle = math.atan2(motion[1], motion[0])-math.pi/8
             octant = int(round(8*angle/(2*math.pi)+8)%8)
             direction = HALF_WIND_MAP[octant]
@@ -155,6 +155,7 @@ class History():
             if not s or s.label != label or not s.direction & dir:
                 return i, ''
             i = self.consume(i, label, dir)
+        i = self.skip(i, label)
         return i, label
 
     def skip(self, i: int, label: str):
@@ -165,10 +166,10 @@ class History():
         return i
 
     def update_word(self):
-        # print(chr(27) + "[2J")
-        # for s in self.timeline:
-        #     print(s, end=' ')
-        # print()
+        print(chr(27) + "[2J")
+        for s in self.timeline:
+            print(s, end=' ')
+        print()
 
         i = 0
         size = len(self.timeline)
@@ -198,6 +199,7 @@ class History():
 
             i, l = self.directions(i, 'z', [DIR_LEFT, DIR_DOWN_RIGHT, DIR_LEFT])
             if l:
+                print(self.at(i))
                 word += l
                 continue
 
