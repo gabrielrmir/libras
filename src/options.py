@@ -32,3 +32,11 @@ reset_timeout = 2.0
 # Tempo mínimo que um gesto precisa estar sendo executado para ser considerado
 # válido. Ajuda a evitar detecção de gestos não desejados.
 minimum_duration = 0.3
+
+# O quão rápido um movimento deve ser para ser considerado válido
+minimum_motion = 0.2
+minimum_finger_motion = 0.3
+
+# Escala da janela de exibição
+# Caso a tela esteja muito pequena ou muito grande a escala pode ser ajustada
+display_scale = 1.0

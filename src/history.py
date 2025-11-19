@@ -50,11 +50,12 @@ def dirs_to_str(dirs: int):
     return s
 
 class State():
-    def __init__(self, timestamp_sec: float, label: str, direction: int = 0):
+    def __init__(self, timestamp_sec: float, label: str, direction: int = 0, separate: bool = False):
         self.label = label
         self.direction = direction
         self.time_start = timestamp_sec
         self.time_end = timestamp_sec
+        self.separate = separate
 
     def extend_time(self, timestamp_sec: float):
         if timestamp_sec > self.time_start:
@@ -73,12 +74,14 @@ class History():
         self.last_label = ''
         self.last_label_start = 0.0
         self.last_label_end = 0.0
+        self.last_separate = False
 
         self.last_direction: int
         self.last_direction = 0
 
         self.timeline: list[State]
         self.timeline = []
+        self.merge = True
 
         self.word = ''
 
@@ -90,13 +93,20 @@ class History():
             direction = HALF_WIND_MAP[octant]
         if direction != self.last_direction:
             self.last_direction = direction
+            self.last_separate = False
             self.push_state(timestamp_sec)
 
     def push_label(self, timestamp_sec: float, label: str):
-        if self.last_label != label:
+        if self.last_label != label or not self.merge:
             self.last_label = label
             self.last_label_start = timestamp_sec
             self.last_label_end = timestamp_sec
+            if not self.merge:
+                self.last_separate = True
+                self.merge = True
+            else:
+                self.last_separate = False
+            self.push_state(timestamp_sec)
             return
         if timestamp_sec > self.last_label_end:
             self.last_label_end = timestamp_sec
@@ -107,10 +117,11 @@ class History():
             return
 
         if self.timeline and self.timeline[-1].label == self.last_label and \
-            self.timeline[-1].direction == self.last_direction:
+            self.timeline[-1].direction == self.last_direction and \
+            self.last_label_start < self.timeline[-1].time_end:
             self.timeline[-1].extend_time(timestamp_sec)
         else:
-            state = State(timestamp_sec, self.last_label, self.last_direction)
+            state = State(timestamp_sec, self.last_label, self.last_direction, separate=self.last_separate)
             self.timeline.append(state)
             self.update_word()
 
@@ -166,10 +177,10 @@ class History():
         return i
 
     def update_word(self):
-        print(chr(27) + "[2J")
-        for s in self.timeline:
-            print(s, end=' ')
-        print()
+        # print(chr(27) + "[2J")
+        # for s in self.timeline:
+        #     print(f'{s}{':s' if s.separate else ''}' , end=' ')
+        # print()
 
         i = 0
         size = len(self.timeline)
@@ -204,12 +215,27 @@ class History():
 
             i, l = self.directions(i, 'z', [DIR_LEFT, DIR_DOWN_RIGHT, DIR_LEFT])
             if l:
-                print(self.at(i))
                 word += l
                 continue
 
-            if s.label in SIMPLE_LETTERS and s.direction == 0:
+            s = self.at(i)
+            if s and s.label == 'space' and s.direction & DIR_LEFT:
+                word += ' '
+                while s and s.label == 'space':
+                    i += 1
+                    s = self.at(i)
+                continue
+
+            if s and s.label in SIMPLE_LETTERS and s.direction == 0:
                 word += s.label
+                label = s.label
+                i += 1
+                s = self.at(i)
+                while s and s.label == label and not s.separate:
+                    i += 1
+                    s = self.at(i)
+                continue
+
             i += 1
 
         self.word = word
