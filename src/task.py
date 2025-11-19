@@ -2,16 +2,19 @@ import cv2
 
 from landmarker import Landmarker
 from camera import Camera
-from options import running_mode
+import options
 
 class Task():
     def __init__(self, title):
         self.cam = Camera()
+        self.scale = options.display_scale
+        self.dsize = (int(self.cam.size[0]*self.scale), int(self.cam.size[1]*self.scale))
         self.cap = self.cam.cap
         self.title = title
         cv2.namedWindow(self.title,
             cv2.WINDOW_AUTOSIZE | cv2.WINDOW_GUI_NORMAL)
-        self.landmarker = Landmarker(running_mode)
+        cv2.moveWindow(self.title, 10, 10)
+        self.landmarker = Landmarker(options.running_mode)
         self.running = True
         self.exit_code = 0
 
@@ -32,6 +35,7 @@ class Task():
         self._process(frame)
         if key == ord('k'):
             cv2.imshow('captura', frame)
+        frame = cv2.resize(frame, self.dsize)
         cv2.imshow(self.title, frame)
 
     def _input(self, key):

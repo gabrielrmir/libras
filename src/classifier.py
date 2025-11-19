@@ -8,6 +8,7 @@ import draw
 import options
 from task import Task
 from history import History
+import utils
 
 def _load_clf(option):
     match option:
@@ -50,20 +51,26 @@ class ClassifierTask(Task):
         if self.landmarker.timestamp > self.last_result:
             self.last_result = self.landmarker.timestamp
 
-            hand = self.landmarker.world_result[:,:2].flatten()
-            y = self.classifier.predict([hand])[0]
+            world_hand = self.landmarker.world_result[:,:2].flatten()
+            y = self.classifier.predict([world_hand])[0]
             label = str(y)
-            if label:
-                self.history.push_label(current_time, label)
 
+            finger_motion = False
+            for motion in self.landmarker.motions[1:]:
+                if utils.vec_len(motion.get_motion()) > options.minimum_finger_motion:
+                    self.history.merge = False
+                    finger_motion = True
+                    break
+            if label and not finger_motion:
+                self.history.push_label(current_time, label)
             self.history.push_motion(current_time, self.landmarker.motions[0].get_motion())
 
         cv2.flip(frame, 1, frame)
 
         draw.text_box(frame, self.history.word, (0,38))
-        draw.texts(frame, [
-            label
-        ], (0, 70))
+        # draw.texts(frame, [
+        #     label
+        # ], (0, 70))
 
 def main():
     task = ClassifierTask()
