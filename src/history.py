@@ -192,6 +192,11 @@ class History():
                 word += l
                 continue
 
+            i, l = self.directions(i, 'k', [DIR_UP])
+            if l:
+                word += l
+                continue
+
             i, l = self.directions(i, 'x', [DIR_LEFT])
             if l:
                 word += l
