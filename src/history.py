@@ -87,7 +87,7 @@ class History():
 
     def push_motion(self, timestamp_sec: float, motion: tuple[float, float]):
         direction = 0
-        if utils.vec_len(motion) > .2:
+        if utils.vec_len(motion) > options.minimum_motion:
             angle = math.atan2(motion[1], motion[0])-math.pi/8
             octant = int(round(8*angle/(2*math.pi)+8)%8)
             direction = HALF_WIND_MAP[octant]
