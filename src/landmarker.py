@@ -18,9 +18,11 @@ def _is_empty(result: HandLandmarkerResult | None):
         len(result.hand_landmarks) == 0
 
 class Motion():
-    def __init__(self, *sources):
+    def __init__(self, *sources, parent = None):
         self.sources = np.array(sources)
         self.values = CArray((5,3))
+        self.parent: Motion | None
+        self.parent = parent
 
     def update(self, result, prev_result, scale = 1.0):
         pos = result[self.sources].sum(axis=0)/len(self.sources)
@@ -30,7 +32,10 @@ class Motion():
 
     # Vetor não normalizado
     def get_motion(self):
-        return self.values.avg()
+        motion = self.values.avg()
+        if self.parent:
+            motion -= self.parent.get_motion()
+        return motion
 
 class Landmarker():
     def __init__(self, mode: RunningMode = RunningMode.LIVE_STREAM):
@@ -49,16 +54,17 @@ class Landmarker():
         if mode != RunningMode.LIVE_STREAM:
             self.detect = self._detect_sync
 
+        global_motion = Motion(0, 5, 17)
         self.motions = [
             # Centróide da palma da mão
-            Motion(0, 5, 17),
+            global_motion,
 
             # Ponta dos dedos
-            Motion(4),
-            Motion(8),
-            Motion(12),
-            Motion(16),
-            Motion(20)
+            Motion(4,  parent=global_motion),
+            Motion(8,  parent=global_motion),
+            Motion(12, parent=global_motion),
+            Motion(16, parent=global_motion),
+            Motion(20, parent=global_motion)
         ]
 
         self.handedness = 'Right'
@@ -107,6 +113,7 @@ class Landmarker():
             min_hand_detection_confidence=0.7,
             min_hand_presence_confidence=0.7,
             min_tracking_confidence=0.7,
+
             result_callback=callback)
 
         return HandLandmarker.create_from_options(lm_options)
