@@ -62,7 +62,7 @@ class State():
             self.time_end = timestamp_sec
 
     def __str__(self):
-        return f'<{self.label}:{dirs_to_str(self.direction)}>'
+        return f'<{self.label}:{dirs_to_str(self.direction)}>{":s" if self.separate else ""}'
 
     def __eq__(self, state):
         return self.label == state.label and \
@@ -125,12 +125,17 @@ class History():
             self.timeline.append(state)
             self.update_word()
 
-    def consume(self, i: int, label: str, direction: int = -1, optional: bool = False) -> int:
-        size = len(self.timeline)
-        while i < size and self.timeline[i].label == label and \
-            (direction == -1 or self.timeline[i].direction & direction or \
-             self.timeline[i].direction == direction or (self.timeline[i].direction == 0 and optional)):
+    def consume(self, i: int, label: str, direction: int = -1) -> int:
+        s = self.at(i)
+        if not s or (s and (s.label != label or not (direction == -1 or s.direction & direction or s.direction == direction))):
+            return i
+
+        i += 1
+        s = self.at(i)
+        while s and s.label == label and not s.separate and \
+            (direction == -1 or s.direction & direction or s.direction == direction):
             i += 1
+            s = self.at(i)
         return i
 
     def at(self, i: int) -> State | None:
@@ -138,35 +143,34 @@ class History():
             return self.timeline[i]
         return None
 
-    def sequence(self, i: int, l1: str, l2: str, push_l1: bool = True):
+    def sequence(self, i: int, labels: list[str], push: list[str]):
         s = self.at(i)
-        if not s:
+        if not s or s.label != labels[0] or s.direction != 0:
             return i, ''
 
-        if not s.label == l1 or s.direction != 0:
-            return i, ''
-
-        i = self.consume(i, l1, 0)
+        i = self.consume(i, s.label)
         s = self.at(i)
-        if s and s.label == l2:
-            i = self.consume(i, l2)
-            return i, l2
 
-        if push_l1:
-            return i, l1
+        ilabel = 1
+        ipush = 0
+        while ipush+1 < len(push) and s and s.label == labels[ilabel]:
+            ilabel += 1
+            ipush += 1
+            i = self.consume(i, s.label)
+            s = self.at(i)
 
-        return i, ''
+        return i, push[ipush]
 
     def directions(self, i: int, label: str, directions: list[int]):
-        i = self.skip(i, label)
-        s = self.at(i)
         for dir in directions:
             i = self.skip(i, label)
             s = self.at(i)
             if not s or s.label != label or not s.direction & dir:
                 return i, ''
             i = self.consume(i, label, dir)
-        i = self.skip(i, label)
+        s = self.at(i)
+        if s and s.label == label and not s.separate:
+            i = self.consume(i, label)
         return i, label
 
     def skip(self, i: int, label: str):
@@ -179,7 +183,7 @@ class History():
     def update_word(self):
         # print(chr(27) + "[2J")
         # for s in self.timeline:
-        #     print(f'{s}{':s' if s.separate else ''}' , end=' ')
+        #     print(f'{s}' , end=' ')
         # print()
 
         i = 0
@@ -188,20 +192,19 @@ class History():
         while i < size:
             s = self.timeline[i]
 
-            i, l = self.sequence(i, 'i', 'j')
+            i, l = self.sequence(i, ['i', 'j'], ['i', 'j'])
             if l:
                 word += l
                 continue
 
-            i, l = self.sequence(i, 'p', 'k')
+            i_before = i
+            i, l = self.sequence(i, ['k', 'h'], ['', 'h'])
             if l:
                 word += l
                 continue
-
-            i, l = self.sequence(i, 'k', 'h', False)
-            if l:
-                word += l
-                continue
+            else:
+                i = i_before
+                s = self.at(i)
 
             i, l = self.directions(i, 'k', [DIR_UP])
             if l:
