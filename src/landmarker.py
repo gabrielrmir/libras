@@ -108,7 +108,8 @@ class Landmarker():
         lm_options = HandLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(
                 model_asset_path=options.landmarker_model_path,
-                delegate=BaseOptions.Delegate.GPU),
+                # delegate=BaseOptions.Delegate.GPU
+            ),
             running_mode=mode,
             min_hand_detection_confidence=0.7,
             min_hand_presence_confidence=0.7,

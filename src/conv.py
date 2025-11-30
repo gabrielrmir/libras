@@ -11,5 +11,6 @@ def filepath_to_coords(filepath: Path, lm: Landmarker):
         data=cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     result = lm.landmarker.detect(mp_image)
     if not result.hand_world_landmarks:
+        print(f'[Warning] Could not detect file "{filepath}"')
         return None
     return utils.hand_to_2d_flipped_array(result.hand_world_landmarks[0], 0).flatten()
