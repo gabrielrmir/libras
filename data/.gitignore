@@ -1,2 +1,4 @@
 *
 !.gitignore
+!capture.csv
+!hand_landmarker.task
